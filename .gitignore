@@ -1,0 +1,14 @@
+# 忽略所有 Visual Studio 自动生成的文件
+.vs/
+out/
+build/
+*.sln
+*.vcxproj
+*.filters
+*.user
+
+# 忽略编译输出
+bin/
+obj/
+*.exe
+*.pdb
