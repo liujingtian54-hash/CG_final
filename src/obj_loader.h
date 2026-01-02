@@ -2,7 +2,7 @@
 
 #include<vector>
 #include<string>
-#include"vertex.h"
+#include"base/vertex.h"
 
 class ObjLoader {
 	bool LoadObj(std::string& path,

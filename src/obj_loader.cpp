@@ -1,5 +1,5 @@
 #include"obj_loader.h"
-#include"vertex.h"
+#include"base/vertex.h"
 #include<iostream>
 #include<string>
 #include<glm/glm.hpp>
