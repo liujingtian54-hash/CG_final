@@ -12,7 +12,9 @@ private:
 	void SetUpMesh();
 public:
 	Mesh(std::vector<Vertex> v, std::vector<unsigned int> i);
-	~Mesh() = default;
+	Mesh(const Mesh&) = delete;
+	Mesh& operator=(const Mesh&) = delete;
+	~Mesh();
 	std::vector<Vertex> GetVertices() {
 		return this->vertices;
 	}

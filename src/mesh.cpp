@@ -10,6 +10,11 @@ Mesh::Mesh(std::vector<Vertex> v, std::vector<unsigned int> i) :vertices(v), ind
 	SetUpMesh();
 }
 
+Mesh::~Mesh() {
+	if (VAO) glDeleteBuffers(1, &VAO);
+	if (VBO) glDeleteBuffers(1, &VBO);
+	if (EBO) glDeleteBuffers(1, &EBO);
+}
 Mesh::SetUpMesh() {
 	glGenVertexArrays(1,&VAO);
 	glGenBuffers(1, &VBO);

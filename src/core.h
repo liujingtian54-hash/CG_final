@@ -10,6 +10,7 @@ class Core : public Application {
 public:
 	Core();
 	~Core();
+	void init();//在init中做其他步骤
 private:
 	GLSLProgram _shader;
 	Camera _camera;
