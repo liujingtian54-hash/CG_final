@@ -3,18 +3,19 @@
 #include"base/glsl_program.h"
 #include"base/application.h"
 #include"base/camera.h"
+#include"scene.h"
 
-//整个作业的核心逻辑
-//TODO:定义需要补充，至少要补一个Scene
 class Core : public Application {
 public:
-	Core();
+	Core(const Options& options);
 	~Core();
-	void init();//在init中做其他步骤
+	void init();//do other steps in init
 private:
-	GLSLProgram _shader;
-	Camera _camera;
+	PerspectiveCamera _camera;
+	Scene* _scene;
 	void handleInput() override;
 	void renderFrame() override;
-
+	
+	bool _isFirstMouse = true;
+	float _lastX = 0.0f, _lastY = 0.0f;
 };
