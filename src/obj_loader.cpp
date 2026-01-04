@@ -1,6 +1,7 @@
 #include"obj_loader.h"
 #include"base/vertex.h"
 #include<iostream>
+#include<fstream>
 #include<string>
 #include<glm/glm.hpp>
 #include<vector>
@@ -24,7 +25,7 @@ std::vector<std::string> string_split(std::string& inputstring, char split, bool
 	return out_vec;
 }
 
-bool ObjLoader::LoadObj(std::string& path,
+bool ObjLoader::LoadObj(const std::string& path,
 	std::vector<Vertex>& out_vertices,
 	std::vector<unsigned int>& out_indices) {
 	std::vector<glm::vec3> temp_positions;

@@ -23,6 +23,18 @@ public:
 		meshes.clear();
 		materials.clear();
 	}
+	static GLSLProgram* LoadShader(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile);
+	static GLSLProgram* GetShader(const std::string& name);
+
+	static Texture2D* LoadTexture(const std::string& name, const std::string& file);
+	static Texture2D* GetTexture(const std::string& name);
+
+	static Mesh* LoadMesh(const std::string& name, const std::string& file);
+	static Mesh* GetMesh(const std::string& name);
+
+	static Material* AddMaterial(const std::string& name, Material* material);
+	static Material* CreateStandardMaterial(const std::string& name, GLSLProgram* shader, Texture2D* diffuse, glm::vec3 color = glm::vec3(1.0f));
+	static Material* GetMaterial(const std::string& name);
 private:
 	ResourceManager();
 };

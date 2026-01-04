@@ -22,7 +22,7 @@ file(GLOB PROJECT_HDR ${SOURCE_PATH}/*.h)
 file(GLOB PROJECT_SRC ${SOURCE_PATH}/*.cpp)
 
 # generate program
-add_executable(final_project ${BASE_HDR} ${BASE_SRC} ${PROJECT_HDR} ${PROJECT_SRC}  "src/scene.cpp")
+add_executable(final_project ${BASE_HDR} ${BASE_SRC} ${PROJECT_HDR} ${PROJECT_SRC})
 
 if(WIN32)
 set_target_properties(${PROJECT_NAME} PROPERTIES
