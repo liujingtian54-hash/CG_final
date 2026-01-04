@@ -19,6 +19,7 @@ public:
 };
 
 // 2. 实现一个最常用的标准材质
+//并非标准，啊，并非标准，这东西就是ai的胡言乱语，设计的一塌糊涂要啥啥没有，不要用它
 class StandardMaterial : public Material {
 public:
     // 材质属性
@@ -53,4 +54,20 @@ public:
         shader->setUniformVec3("uMaterial.color", color);
         shader->setUniformFloat("uMaterial.shininess", shininess);
     }
+};
+
+// 3. 这个大概是正常的材质
+//其实也没多正常，不过当作普通的材质玩还是可以的，blend设0就行
+//可以做一点混合纹理，比较酷
+class MixMaterial : public Material {
+public:
+    Texture2D* tex1;
+    Texture2D* tex2;
+    glm::vec3 kds1;
+    glm::vec3 kds2;
+    float blend = 0.0f;
+
+    MixMaterial(GLSLProgram* shader, Texture2D* t1, Texture2D* t2);
+    ~MixMaterial() override;
+    void Setup() override; 
 };

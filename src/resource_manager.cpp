@@ -9,7 +9,7 @@
 
 std::map<std::string, Texture2D*> ResourceManager::textures;
 std::map<std::string, Mesh*> ResourceManager::meshes;
-std::map<std::string, Material*> ResourceManager::materials;
+std::map<std::string, MixMaterial*> ResourceManager::materials;
 std::map<std::string, GLSLProgram*> ResourceManager::shaders;
 
 GLSLProgram* ResourceManager::LoadShader(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile) {
@@ -19,8 +19,8 @@ GLSLProgram* ResourceManager::LoadShader(const std::string& name, const std::str
 
     GLSLProgram* shader = new GLSLProgram();
     try {
-        shader->attachVertexShaderFromFile(vShaderFile);
-        shader->attachFragmentShaderFromFile(fShaderFile);
+        shader->attachVertexShader(vShaderFile);
+        shader->attachFragmentShader(fShaderFile);
         shader->link();
     }
     catch (std::exception& e) {
@@ -86,7 +86,7 @@ Mesh* ResourceManager::GetMesh(const std::string& name) {
     return nullptr;
 }
 
-Material* ResourceManager::AddMaterial(const std::string& name, Material* material) {
+MixMaterial* ResourceManager::AddMaterial(const std::string& name, MixMaterial* material) {
     if (materials.find(name) != materials.end()) {
         std::cerr << "WARNING::MATERIAL_ALREADY_EXISTS: " << name << " (Overwriting)" << std::endl;
         delete materials[name]; // 如果覆盖，先删除旧的防止泄漏
@@ -95,16 +95,7 @@ Material* ResourceManager::AddMaterial(const std::string& name, Material* materi
     return material;
 }
 
-// 这是一个快捷辅助函数，用于快速创建标准材质
-Material* ResourceManager::CreateStandardMaterial(const std::string& name, GLSLProgram* shader, Texture2D* diffuse, glm::vec3 color) {
-    StandardMaterial* mat = new StandardMaterial(shader);
-    mat->diffuseMap = diffuse;
-    mat->color = color;
-
-    return AddMaterial(name, mat);
-}
-
-Material* ResourceManager::GetMaterial(const std::string& name) {
+MixMaterial* ResourceManager::GetMaterial(const std::string& name) {
     if (materials.find(name) != materials.end())
         return materials[name];
     std::cerr << "WARNING::MATERIAL_NOT_FOUND: " << name << std::endl;

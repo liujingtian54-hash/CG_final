@@ -11,7 +11,7 @@ class ResourceManager {
 public:
 	static std::map<std::string, Texture2D*> textures;
 	static std::map<std::string, Mesh*> meshes;
-	static std::map<std::string, Material*> materials;
+	static std::map<std::string, MixMaterial*> materials;
 	static std::map<std::string, GLSLProgram*> shaders;
 	static void Clear() {
 		for (auto& iter : shaders) delete iter.second;
@@ -29,12 +29,12 @@ public:
 	static Texture2D* LoadTexture(const std::string& name, const std::string& file);
 	static Texture2D* GetTexture(const std::string& name);
 
+	//name,path
 	static Mesh* LoadMesh(const std::string& name, const std::string& file);
 	static Mesh* GetMesh(const std::string& name);
 
-	static Material* AddMaterial(const std::string& name, Material* material);
-	static Material* CreateStandardMaterial(const std::string& name, GLSLProgram* shader, Texture2D* diffuse, glm::vec3 color = glm::vec3(1.0f));
-	static Material* GetMaterial(const std::string& name);
+	static MixMaterial* AddMaterial(const std::string& name, MixMaterial* material);
+	static MixMaterial* GetMaterial(const std::string& name);
 private:
 	ResourceManager();
 };
