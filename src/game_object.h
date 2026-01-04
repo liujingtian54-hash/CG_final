@@ -10,7 +10,7 @@ enum class ObjectGroup {
     Object,
     Building,   // 房子、墙壁 (静态，需要碰撞检测)
     StreetLamp, // 路灯 (需要批量控制开关)
-    Vehicle,    // 车辆 (会动)
+    Player,     // 玩家
     Skybox      // 天空盒
 };
 
