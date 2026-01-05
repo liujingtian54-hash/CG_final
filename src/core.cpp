@@ -590,21 +590,21 @@ void Core::SceneInitialize() {
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
 	//Ê÷Ä¾
-    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj = _scene->CreateObject(ObjectGroup::Building);
     obj->ApplyMesh(ResourceManager::GetMesh("tree1"));
     obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     obj->SetPosition(glm::vec3(0.6f, 0.0f, -0.4f));
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
-    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj = _scene->CreateObject(ObjectGroup::Building);
     obj->ApplyMesh(ResourceManager::GetMesh("tree2"));
     obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     obj->SetPosition(glm::vec3(-1.2f, 0.0f, -1.0f));
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
-    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj = _scene->CreateObject(ObjectGroup::Building);
     obj->ApplyMesh(ResourceManager::GetMesh("tree3"));
     obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     obj->SetPosition(glm::vec3(1.0f, 0.0f, -2.0f));
