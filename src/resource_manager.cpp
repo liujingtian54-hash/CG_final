@@ -151,6 +151,8 @@ Mesh* ResourceManager::LoadMesh(const std::string& name, ShapeType type, const s
         std::cerr << "ERROR::MESH::LOAD_FAILED: Unknown ShapeType" << std::endl;
         return nullptr;
     }
+
+    return mesh; 
 }
 
 Mesh* ResourceManager::GetMesh(const std::string& name) {
