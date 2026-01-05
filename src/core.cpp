@@ -1,25 +1,47 @@
 #include<glm/glm.hpp>
+#include<ctime>
+#include <iomanip>
+
 #include"core.h"
 #include"scene.h"
 #include"game_object.h"
 #include"resource_manager.h"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
 Core::Core(const Options& options) : Application(options), _camera(glm::radians(60.0f), 1.0f * _windowWidth / _windowHeight, 0.1f, 10000.0f), _scene(nullptr), _light() {
 	_scene = new Scene();
     _light.transform = Transform();
-    _light.transform.rotation = glm::vec3(-1.0f, -1.0f, -1.0f);
+    //_light.transform.rotation = glm::vec3(-1.0f, -1.0f, -1.0f);
+    updateLightDirection(_yaw, _pitch);
+	_light.intensity = 1.0f;
 	init();
 }
 
 Core::~Core() {
 	delete _scene;
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+    ResourceManager::Clear();
 }
 
 void Core::init() {
+	//input initialize
     glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     _input.mouse.move.xNow = _input.mouse.move.xOld = 0.5f * _windowWidth;
     _input.mouse.move.yNow = _input.mouse.move.yOld = 0.5f * _windowHeight;
     glfwSetCursorPos(_window, _input.mouse.move.xNow, _input.mouse.move.yNow);
+	//imgui initialize
+    IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(_window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+	//resource initialize
     ResourceManager::LoadShader("phong_shader", 
         "#version 330 core\n"
         "layout(location = 0) in vec3 aPosition;\n"
@@ -98,63 +120,119 @@ void Core::init() {
 void Core::handleInput() {
     constexpr float cameraMoveSpeed = 0.2f;
     constexpr float cameraRotateSpeed = 0.01f;
+    
+    static bool move_state = true;
+    static bool key_state = true;
+    static bool pPressed = false;
 
     PerspectiveCamera* camera = &_camera;
+    if (_input.keyboard.keyStates[GLFW_KEY_X] == GLFW_RELEASE) {
+        if (key_state) {
+			move_state = !move_state;
+            _manuallycontrollight = !_manuallycontrollight;
+        }
+        key_state = false;
+    }
+    else {
+		key_state = true;
+    }
+
+    if (_input.keyboard.keyStates[GLFW_KEY_P] != GLFW_RELEASE) {
+        if (!pPressed) {
+			_ShouldSaveScreenshot = true;
+            pPressed = true;
+        }
+        else {
+			_ShouldSaveScreenshot = false; 
+        }
+    }
+    else {
+        pPressed = false;
+        _ShouldSaveScreenshot = false;
+    }
 
     if (_input.keyboard.keyStates[GLFW_KEY_ESCAPE] != GLFW_RELEASE) {
         glfwSetWindowShouldClose(_window, true);
         return;
     }
-    if (_input.keyboard.keyStates[GLFW_KEY_W] != GLFW_RELEASE) {
-        std::cout << "W" << std::endl;
-        glm::vec3 MoveSpeed = glm::vec3(0.0f, 0.0f, -cameraMoveSpeed)*camera->transform.rotation;
-        camera->transform.position = camera->transform.position + MoveSpeed;
-    }
+    if (move_state) {
+        if (_input.keyboard.keyStates[GLFW_KEY_W] != GLFW_RELEASE) {
+            std::cout << "W" << std::endl;
+            glm::vec3 MoveSpeed = glm::vec3(0.0f, 0.0f, -cameraMoveSpeed) * camera->transform.rotation;
+            camera->transform.position = camera->transform.position + MoveSpeed;
+        }
 
-    if (_input.keyboard.keyStates[GLFW_KEY_A] != GLFW_RELEASE) {
-        std::cout << "A" << std::endl;
-        glm::vec3 MoveSpeed = glm::vec3(- cameraMoveSpeed, 0.0f, 0.0f)* camera->transform.rotation;
-        camera->transform.position = camera->transform.position + MoveSpeed;
-    }
+        if (_input.keyboard.keyStates[GLFW_KEY_A] != GLFW_RELEASE) {
+            std::cout << "A" << std::endl;
+            glm::vec3 MoveSpeed = glm::vec3(-cameraMoveSpeed, 0.0f, 0.0f) * camera->transform.rotation;
+            camera->transform.position = camera->transform.position + MoveSpeed;
+        }
 
-    if (_input.keyboard.keyStates[GLFW_KEY_S] != GLFW_RELEASE) {
-        std::cout << "S" << std::endl;
-        glm::vec3 MoveSpeed = glm::vec3(0.0f,0.0f,cameraMoveSpeed) * camera->transform.rotation;
-        camera->transform.position = camera->transform.position + MoveSpeed;
-    }
+        if (_input.keyboard.keyStates[GLFW_KEY_S] != GLFW_RELEASE) {
+            std::cout << "S" << std::endl;
+            glm::vec3 MoveSpeed = glm::vec3(0.0f, 0.0f, cameraMoveSpeed) * camera->transform.rotation;
+            camera->transform.position = camera->transform.position + MoveSpeed;
+        }
 
-    if (_input.keyboard.keyStates[GLFW_KEY_D] != GLFW_RELEASE) {
-        std::cout << "D" << std::endl;
-        glm::vec3 MoveSpeed = glm::vec3(cameraMoveSpeed,0.0f,0.0f);
-        camera->transform.position = camera->transform.position + MoveSpeed;
-    }
+        if (_input.keyboard.keyStates[GLFW_KEY_D] != GLFW_RELEASE) {
+            std::cout << "D" << std::endl;
+            glm::vec3 MoveSpeed = glm::vec3(cameraMoveSpeed, 0.0f, 0.0f);
+            camera->transform.position = camera->transform.position + MoveSpeed;
+        }
 
-    if (_input.mouse.move.xNow != _input.mouse.move.xOld) {
-        std::cout << "mouse move in x direction" << std::endl;
-        float mousemove_x = _input.mouse.move.xNow - _input.mouse.move.xOld;
-        glm::vec3 up = { 0.0f,1.0f,0.0f };
-        glm::quat move = glm::angleAxis(-mousemove_x * cameraRotateSpeed, up);
-        camera->transform.rotation = move * camera->transform.rotation;
-    }
+        if (_input.mouse.move.xNow != _input.mouse.move.xOld) {
+            std::cout << "mouse move in x direction" << std::endl;
+            float mousemove_x = _input.mouse.move.xNow - _input.mouse.move.xOld;
+            glm::vec3 up = { 0.0f,1.0f,0.0f };
+            glm::quat move = glm::angleAxis(-mousemove_x * cameraRotateSpeed, up);
+            camera->transform.rotation = move * camera->transform.rotation;
+        }
 
-    if (_input.mouse.move.yNow != _input.mouse.move.yOld) {
-        std::cout << "mouse move in y direction" << std::endl;
-        float mousemove_y = _input.mouse.move.yNow - _input.mouse.move.yOld;
-        glm::quat move = glm::angleAxis(-mousemove_y * cameraRotateSpeed, camera->transform.getRight());
-        camera->transform.rotation = move * camera->transform.rotation;
+        if (_input.mouse.move.yNow != _input.mouse.move.yOld) {
+            std::cout << "mouse move in y direction" << std::endl;
+            float mousemove_y = _input.mouse.move.yNow - _input.mouse.move.yOld;
+            glm::quat move = glm::angleAxis(-mousemove_y * cameraRotateSpeed, camera->transform.getRight());
+            camera->transform.rotation = move * camera->transform.rotation;
+        }
     }
-
     _input.forwardState();
 }
 
 //TODO:处理render和frame。建议通过辅助函数，分为render和frame两部分处理，把渲染逻辑和帧逻辑分开。
 void Core::renderFrame() {
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+	ImGui::Begin("light settings");
+
+    if (!_manuallycontrollight)
+        ImGui::BeginDisabled();
+	ImGui::ColorEdit3("light color", &_light.color.x);
+    ImGui::SliderFloat("Intensity", &_light.intensity, 0.0f, 5.0f);
+    
+    ImGui::Text("Sun Position");
+    bool updated = false;
+    updated |= ImGui::SliderFloat("Yaw", &_yaw, -180.0f, 180.0f);
+    updated |= ImGui::SliderFloat("Pitch", &_pitch, -89.0f, 89.0f);
+
+    if(updated) {
+        updateLightDirection(_yaw, _pitch);
+	}
+    if (!_manuallycontrollight)
+        ImGui::EndDisabled();
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+        1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+    ImGui::End();
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    render();
 
-    _scene->Update(_deltaTime);
+    render();
+    doFrame();
 }
 
 void Core::render() {
@@ -166,6 +244,34 @@ void Core::render() {
     s->setUniformFloat("light.intensity", _light.intensity);
 
     _scene->Render();
+
+    if (_ShouldSaveScreenshot) {
+        // 生成带时间戳的文件名：screenshot_20231027_123055.png
+        std::time_t t = std::time(nullptr);
+        std::tm tm = *std::localtime(&t);
+
+        std::ostringstream oss;
+        oss << "screenshot_" << std::put_time(&tm, "%Y%m%d_%H%M%S") << ".png";
+
+        saveScreenshot(oss.str());
+    }
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Core::doFrame() {
+    if (!_manuallycontrollight)
+        glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    else
+        glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+    if (!_manuallycontrollight) {
+        _yaw += 1.0f;
+		if (_yaw > 180.0f) _yaw -= 360.0f;
+		updateLightDirection(_yaw, _pitch);
+    }
+    _scene->Update(_deltaTime);
 }
 
 void Core::SceneInitialize() {
@@ -190,4 +296,19 @@ void Core::SceneInitialize() {
     obj->SetPosition(glm::vec3(0.0f, 0.0f, -15.0f));
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
+}
+
+void Core::saveScreenshot(const std::string& filename) {
+    int width = _windowWidth, height = _windowHeight;
+    std::vector<unsigned char> pixels(width * height * 3);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    // Flip the image vertically
+    std::vector<unsigned char> flippedPixels(width * height * 3);
+    for (int y = 0; y < height; ++y) {
+        memcpy(&flippedPixels[y * width * 3],
+               &pixels[(height - 1 - y) * width * 3],
+               width * 3);
+    }
+    stbi_write_png(filename.c_str(), width, height, 3, flippedPixels.data(), width * 3);
 }
