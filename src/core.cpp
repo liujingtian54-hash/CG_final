@@ -6,6 +6,7 @@
 #include"scene.h"
 #include"game_object.h"
 #include"resource_manager.h"
+#include"geometry_generator.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -103,6 +104,8 @@ void Core::init() {
 //    ResourceManager::LoadMesh("building1_exported", "../media/obj/building1_exported.obj");
     ResourceManager::LoadMesh("building2", "../media/obj/fangjian2.obj");
     ResourceManager::LoadMesh("bunny", "../media/obj/bunny.obj");
+    ResourceManager::LoadCube("cube", 3.0f);
+	ResourceManager::LoadCylinder("cylinder", 1.0f, 2.0f, 36);
 
     ResourceManager::LoadTexture("white", "../media/texture/white.png");
 
@@ -239,7 +242,9 @@ void Core::render() {
     GLSLProgram* s = ResourceManager::GetShader("phong_shader");
     s->setUniformMat4("projection", _camera.getProjectionMatrix());
     s->setUniformMat4("view", _camera.getViewMatrix());
-    s->setUniformVec3("light.direction", _light.transform.getFront());
+    glm::quat rot = _light.transform.rotation;
+	glm::vec3 direction = glm::vec3(rot.x,rot.y,rot.z);
+    s->setUniformVec3("light.direction", direction);
     s->setUniformVec3("light.color", _light.color);
     s->setUniformFloat("light.intensity", _light.intensity);
 
@@ -296,6 +301,21 @@ void Core::SceneInitialize() {
     obj->SetPosition(glm::vec3(0.0f, 0.0f, -15.0f));
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
+    
+	obj = _scene->CreateObject(ObjectGroup::Object);
+	obj->ApplyMesh(ResourceManager::GetMesh("cube"));
+	obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
+	obj->SetPosition(glm::vec3(0.0f, -5.0f, -30.0f));
+	obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
+	obj->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
+
+    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj->ApplyMesh(ResourceManager::GetMesh("cylinder"));
+    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
+    obj->SetPosition(glm::vec3(0.0f, 5.0f, -30.0f));
+    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
+    obj->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
+
 }
 
 void Core::saveScreenshot(const std::string& filename) {

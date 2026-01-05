@@ -4,6 +4,7 @@
 #include"material.h"
 #include"resource_manager.h"
 #include"obj_loader.h"
+#include"geometry_generator.h"
 #include<map>
 #include<string>
 
@@ -77,6 +78,79 @@ Mesh* ResourceManager::LoadMesh(const std::string& name, const std::string& file
 
     meshes[name] = mesh;
     return mesh;
+}
+
+Mesh* ResourceManager::LoadMesh(const std::string& name, ShapeType type, const std::vector<float>& params) {
+	Mesh* mesh = nullptr;
+    switch (type) {
+    case ShapeType::Cube: {
+        float size = params.size() > 0 ? params[0] : 1.0f;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        GeometryGenerator::CreateCube(vertices, indices, size);
+        mesh = new Mesh(vertices, indices);
+		meshes[name] = mesh;
+        break;
+    }
+    case ShapeType::Sphere: {
+        float radius = params.size() > 0 ? params[0] : 1.0f;
+        int segments = params.size() > 1 ? static_cast<int>(params[1]) : 32;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        GeometryGenerator::CreateSphere(vertices, indices, radius, segments);
+        mesh = new Mesh(vertices, indices);
+		meshes[name] = mesh;
+        break;
+    }
+    case ShapeType::Cylinder: {
+        float radius = params.size() > 0 ? params[0] : 0.5f;
+        float height = params.size() > 1 ? params[1] : 2.0f;
+        int segments = params.size() > 2 ? static_cast<int>(params[2]) : 32;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        GeometryGenerator::CreateCylinder(vertices, indices, radius, height, segments);
+        mesh = new Mesh(vertices, indices);
+		meshes[name] = mesh;
+        break;
+    }
+    case ShapeType::Cone: {
+        float radius = params.size() > 0 ? params[0] : 0.5f;
+        float height = params.size() > 1 ? params[1] : 2.0f;
+        int segments = params.size() > 2 ? static_cast<int>(params[2]) : 32;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        GeometryGenerator::CreateCone(vertices, indices, radius, height, segments);
+        mesh = new Mesh(vertices, indices);
+		meshes[name] = mesh;
+        break;
+    }
+    case ShapeType::Prism: {
+        int sides = params.size() > 0 ? static_cast<int>(params[0]) : 6;
+        float radius = params.size() > 1 ? params[1] : 0.5f;
+        float height = params.size() > 2 ? params[2] : 2.0f;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        GeometryGenerator::CreatePrism(vertices, indices, sides, radius, height);
+        mesh = new Mesh(vertices, indices);
+        meshes[name] = mesh;
+        break;
+    }
+    case ShapeType::Frustum: {
+        int sides = params.size() > 0 ? static_cast<int>(params[0]) : 6;
+        float radiusBottom = params.size() > 1 ? params[1] : 0.8f;
+        float radiusTop = params.size() > 2 ? params[2] : 0.3f;
+        float height = params.size() > 3 ? params[3] : 2.0f;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        GeometryGenerator::CreateFrustum(vertices, indices, sides, radiusBottom, radiusTop, height);
+        mesh = new Mesh(vertices, indices);
+		meshes[name] = mesh;
+        break;
+    }
+    default:
+        std::cerr << "ERROR::MESH::LOAD_FAILED: Unknown ShapeType" << std::endl;
+        return nullptr;
+    }
 }
 
 Mesh* ResourceManager::GetMesh(const std::string& name) {

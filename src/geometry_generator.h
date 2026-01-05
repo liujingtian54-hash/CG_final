@@ -4,6 +4,15 @@
 #include <glm/glm.hpp>
 #include "base/vertex.h"
 
+enum class ShapeType {
+    Cube,
+    Sphere,
+    Cylinder,
+    Cone,
+    Prism,
+    Frustum
+};
+
 class GeometryGenerator {
 public:
     // 生成立方体
