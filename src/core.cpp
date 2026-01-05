@@ -78,6 +78,7 @@ void Core::init() {
         "}\n");
 
     ResourceManager::LoadMesh("building1", "../media/obj/fangjian1.obj");
+//    ResourceManager::LoadMesh("building1_exported", "../media/obj/building1_exported.obj");
     ResourceManager::LoadMesh("building2", "../media/obj/fangjian2.obj");
     ResourceManager::LoadMesh("bunny", "../media/obj/bunny.obj");
 
@@ -86,10 +87,14 @@ void Core::init() {
     ResourceManager::AddMaterial("white_material", new MixMaterial(ResourceManager::GetShader("phong_shader"),
         ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white")));
 
+	//只是表明我们做了导出功能
+	//实际上对于这个项目来说，并不需要导出功能
+	ResourceManager::ExportMesh("building1", "../media/obj/building1_exported.obj");
     SceneInitialize();
 }
 
 //TODO:处理输入
+//这个输入是昨天晚上临时写的，正式版本需要重新设计输入处理
 void Core::handleInput() {
     constexpr float cameraMoveSpeed = 0.2f;
     constexpr float cameraRotateSpeed = 0.01f;
@@ -148,6 +153,8 @@ void Core::renderFrame() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     render();
+
+    _scene->Update(_deltaTime);
 }
 
 void Core::render() {

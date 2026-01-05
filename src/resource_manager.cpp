@@ -86,6 +86,15 @@ Mesh* ResourceManager::GetMesh(const std::string& name) {
     return nullptr;
 }
 
+bool ResourceManager::ExportMesh(const std::string& name, const std::string& path) {
+    Mesh* mesh = GetMesh(name);
+    if (!mesh) {
+        std::cerr << "ERROR::MESH::EXPORT_FAILED: Mesh not found: " << name << std::endl;
+        return false;
+    }
+    return ObjLoader::ExportObj(name, path);
+}
+
 MixMaterial* ResourceManager::AddMaterial(const std::string& name, MixMaterial* material) {
     if (materials.find(name) != materials.end()) {
         std::cerr << "WARNING::MATERIAL_ALREADY_EXISTS: " << name << " (Overwriting)" << std::endl;

@@ -20,6 +20,7 @@ public:
 
 // 2. 实现一个最常用的标准材质
 //并非标准，啊，并非标准，这东西就是ai的胡言乱语，设计的一塌糊涂要啥啥没有，不要用它
+//还没被铲掉的理由只有防止别的地方有废弃的api在用这个东西
 class StandardMaterial : public Material {
 public:
     // 材质属性

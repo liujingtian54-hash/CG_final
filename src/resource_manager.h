@@ -32,6 +32,7 @@ public:
 	//name,path
 	static Mesh* LoadMesh(const std::string& name, const std::string& file);
 	static Mesh* GetMesh(const std::string& name);
+	static bool ExportMesh(const std::string& name, const std::string& path);
 
 	static MixMaterial* AddMaterial(const std::string& name, MixMaterial* material);
 	static MixMaterial* GetMaterial(const std::string& name);

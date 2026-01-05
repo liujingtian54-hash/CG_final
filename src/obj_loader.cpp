@@ -1,4 +1,6 @@
 #include"obj_loader.h"
+#include"mesh.h"
+#include"resource_manager.h"
 #include"base/vertex.h"
 #include<iostream>
 #include<fstream>
@@ -117,5 +119,35 @@ bool ObjLoader::LoadObj(const std::string& path,
 			continue;
 	}
 
+	return true;
+}
+
+bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& path) {
+	std::ofstream file(path);
+	if (!file.is_open()) {
+		std::cerr << "Failed to open file for writing: " << path << std::endl;
+		return false;
+	}
+	file << "# Exported OBJ file: " << mesh_name << "\n";
+	Mesh* mesh = ResourceManager::GetMesh(mesh_name);
+	for(auto& iter : mesh->GetVertices()) {
+		file << "v " << iter.position.x << " " << iter.position.y << " " << iter.position.z << "\n";
+	}
+	for (auto& iter : mesh->GetVertices()) {
+		file << "vn " << iter.normal.x << " " << iter.normal.y << " " << iter.normal.z << "\n";
+	}
+	for (auto& iter : mesh->GetVertices()) {
+		file << "vt " << iter.texCoord.x << " " << iter.texCoord.y << "\n";
+	}
+	for (size_t i = 0; i < mesh->GetIndices().size(); i += 3) {
+		unsigned int idx0 = mesh->GetIndices()[i] + 1;
+		unsigned int idx1 = mesh->GetIndices()[i + 1] + 1;
+		unsigned int idx2 = mesh->GetIndices()[i + 2] + 1;
+		file << "f " << idx0 << "/" << idx0 << "/" << idx0 << " "
+			<< idx1 << "/" << idx1 << "/" << idx1 << " "
+			<< idx2 << "/" << idx2 << "/" << idx2 << "\n";
+	}
+
+	file.close();
 	return true;
 }
