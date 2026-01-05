@@ -18,6 +18,9 @@ Core::Core(const Options& options) : Application(options), _camera(glm::radians(
     //_light.transform.rotation = glm::vec3(-1.0f, -1.0f, -1.0f);
     updateLightDirection(_yaw, _pitch);
 	_light.intensity = 1.0f;
+
+    _characterDistance = 0.3f; // 人物在摄像机前方0.3个单位
+    _characterHeight = 0.25f;   // 人物在摄像机下方0.25个单位
 	init();
 }
 
@@ -103,6 +106,7 @@ void Core::init() {
     ResourceManager::LoadMesh("building1", "../media/obj/fangjian1.obj");
 //    ResourceManager::LoadMesh("building1_exported", "../media/obj/building1_exported.obj");
     ResourceManager::LoadMesh("building2", "../media/obj/fangjian2.obj");
+    ResourceManager::LoadMesh("character", "../media/obj/character_walk_01.obj");
     ResourceManager::LoadMesh("bunny", "../media/obj/bunny.obj");
     ResourceManager::LoadCube("cube", 3.0f);
 	ResourceManager::LoadCylinder("cylinder", 1.0f, 2.0f, 36);
@@ -110,7 +114,7 @@ void Core::init() {
     ResourceManager::LoadTexture("white", "../media/texture/white.png");
 
     ResourceManager::AddMaterial("white_material", new MixMaterial(ResourceManager::GetShader("phong_shader"),
-        ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white")));
+    ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white")));
 
 	//只是表明我们做了导出功能
 	//实际上对于这个项目来说，并不需要导出功能
@@ -128,11 +132,39 @@ void Core::handleInput() {
     static bool key_state = true;
     static bool pPressed = false;
 
+    static bool oldState = true;
+
+
     PerspectiveCamera* camera = &_camera;
     if (_input.keyboard.keyStates[GLFW_KEY_X] == GLFW_RELEASE) {
         if (key_state) {
+            oldState = move_state;
 			move_state = !move_state;
             _manuallycontrollight = !_manuallycontrollight;
+
+            // 当从灯光控制切换回人物控制时，重置鼠标位置
+            if (oldState == false && move_state == true) {
+                // 同步当前摄像机和人物的实际角度到控制变量
+                syncCameraAngles();
+
+                // 重置鼠标位置，避免瞬间旋转
+                _input.mouse.move.xOld = _input.mouse.move.xNow;
+                _input.mouse.move.yOld = _input.mouse.move.yNow;
+
+                // 可选：将鼠标位置设置到窗口中心
+                glfwSetCursorPos(_window, _windowWidth * 0.5f, _windowHeight * 0.5f);
+                _input.mouse.move.xNow = _windowWidth * 0.5f;
+                _input.mouse.move.yNow = _windowHeight * 0.5f;
+
+                // 重置第一次鼠标移动标志
+                _isFirstMouse = true;
+            }
+
+            // 当从人物控制切换到灯光控制时，也同步一次角度
+            if (oldState == true && move_state == false) {
+                syncCameraAngles();
+            }
+
         }
         key_state = false;
     }
@@ -158,78 +190,143 @@ void Core::handleInput() {
         glfwSetWindowShouldClose(_window, true);
         return;
     }
+
     if (move_state) {
         if (_input.keyboard.keyStates[GLFW_KEY_W] != GLFW_RELEASE) {
-            std::cout << "W" << std::endl;
-            glm::vec3 MoveSpeed = glm::vec3(0.0f, 0.0f, -cameraMoveSpeed) * camera->transform.rotation;
-            camera->transform.position = camera->transform.position + MoveSpeed;
+            glm::vec3 moveDirection = _character->GetFront(); // 使用人物的前向
+            moveDirection.y = 0;
+            moveDirection = glm::normalize(moveDirection);
+            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
         }
 
         if (_input.keyboard.keyStates[GLFW_KEY_A] != GLFW_RELEASE) {
-            std::cout << "A" << std::endl;
-            glm::vec3 MoveSpeed = glm::vec3(-cameraMoveSpeed, 0.0f, 0.0f) * camera->transform.rotation;
-            camera->transform.position = camera->transform.position + MoveSpeed;
+            glm::vec3 moveDirection = -_character->GetRight(); // 使用人物的右向
+            moveDirection.y = 0;
+            moveDirection = glm::normalize(moveDirection);
+            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
         }
 
         if (_input.keyboard.keyStates[GLFW_KEY_S] != GLFW_RELEASE) {
-            std::cout << "S" << std::endl;
-            glm::vec3 MoveSpeed = glm::vec3(0.0f, 0.0f, cameraMoveSpeed) * camera->transform.rotation;
-            camera->transform.position = camera->transform.position + MoveSpeed;
+            glm::vec3 moveDirection = -_character->GetFront();
+            moveDirection.y = 0;
+            moveDirection = glm::normalize(moveDirection);
+            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
         }
 
         if (_input.keyboard.keyStates[GLFW_KEY_D] != GLFW_RELEASE) {
-            std::cout << "D" << std::endl;
-            glm::vec3 MoveSpeed = glm::vec3(cameraMoveSpeed, 0.0f, 0.0f);
-            camera->transform.position = camera->transform.position + MoveSpeed;
+            glm::vec3 moveDirection = _character->GetRight();
+            moveDirection.y = 0;
+            moveDirection = glm::normalize(moveDirection);
+            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
+        }
+        // 添加鼠标移动阈值检查，避免瞬间大角度旋转
+        float deltaX = _input.mouse.move.xNow - _input.mouse.move.xOld;
+        float deltaY = _input.mouse.move.yNow - _input.mouse.move.yOld;
+
+
+        // 处理鼠标旋转
+        if (deltaX != 0.0f) {
+            // 修改3：使用更平滑的旋转计算
+            _cameraYaw -= deltaX * cameraRotateSpeed;
+            _characterYaw -= deltaX * cameraRotateSpeed;
+
+            // 限制角度
+            if (_cameraYaw > 180.0f) _cameraYaw -= 360.0f;
+            if (_cameraYaw < -180.0f) _cameraYaw += 360.0f;
+            if (_characterYaw > 180.0f) _characterYaw -= 360.0f;
+            if (_characterYaw < -180.0f) _characterYaw += 360.0f;
+
+            updateCameraRotation();
+            updateCharacterRotation();
         }
 
-        if (_input.mouse.move.xNow != _input.mouse.move.xOld) {
-            std::cout << "mouse move in x direction" << std::endl;
-            float mousemove_x = _input.mouse.move.xNow - _input.mouse.move.xOld;
-            glm::vec3 up = { 0.0f,1.0f,0.0f };
-            glm::quat move = glm::angleAxis(-mousemove_x * cameraRotateSpeed, up);
-            camera->transform.rotation = move * camera->transform.rotation;
-        }
+        if (deltaY != 0.0f) {
+            _cameraPitch -= deltaY * cameraRotateSpeed;
 
-        if (_input.mouse.move.yNow != _input.mouse.move.yOld) {
-            std::cout << "mouse move in y direction" << std::endl;
-            float mousemove_y = _input.mouse.move.yNow - _input.mouse.move.yOld;
-            glm::quat move = glm::angleAxis(-mousemove_y * cameraRotateSpeed, camera->transform.getRight());
-            camera->transform.rotation = move * camera->transform.rotation;
+            if (_cameraPitch > 89.0f) _cameraPitch = 89.0f;
+            if (_cameraPitch < -89.0f) _cameraPitch = -89.0f;
+
+            updateCameraRotation();
         }
     }
+
     _input.forwardState();
+    UpdateCharacterPosition(); // 摄像机跟随人物
 }
 
 //TODO:处理render和frame。建议通过辅助函数，分为render和frame两部分处理，把渲染逻辑和帧逻辑分开。
 void Core::renderFrame() {
-
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-	ImGui::Begin("light settings");
+    // 人物设置窗口
+    ImGui::Begin("Character Settings");
+    ImGui::SliderFloat("Follow Distance", &_characterDistance, 0.0f, 0.5f);
+    ImGui::SliderFloat("Height Offset", &_characterHeight, -1.0f, 1.0f);
+    ImGui::End();
+
+    // 光照设置窗口
+    ImGui::Begin("Light Settings");
 
     if (!_manuallycontrollight)
         ImGui::BeginDisabled();
-	ImGui::ColorEdit3("light color", &_light.color.x);
+
+    ImGui::ColorEdit3("Light Color", &_light.color.x);
     ImGui::SliderFloat("Intensity", &_light.intensity, 0.0f, 5.0f);
-    
+
     ImGui::Text("Sun Position");
     bool updated = false;
     updated |= ImGui::SliderFloat("Yaw", &_yaw, -180.0f, 180.0f);
     updated |= ImGui::SliderFloat("Pitch", &_pitch, -89.0f, 89.0f);
 
-    if(updated) {
+    if (updated) {
         updateLightDirection(_yaw, _pitch);
-	}
+    }
+
     if (!_manuallycontrollight)
         ImGui::EndDisabled();
+
+    // 摄像机信息显示（保持在光照设置窗口内）
+    ImGui::Separator();
+    ImGui::Text("=== Camera Information ===");
+
+    // 从四元数转换为欧拉角
+    glm::vec3 euler = glm::eulerAngles(_camera.transform.rotation);
+    // 将弧度转换为角度，并确保角度范围正确
+    glm::vec3 degrees = glm::degrees(euler);
+
+    degrees.x = fmod(degrees.x + 180.0f, 360.0f) - 180.0f;
+    degrees.y = fmod(degrees.y + 180.0f, 360.0f) - 180.0f;
+    degrees.z = fmod(degrees.z + 180.0f, 360.0f) - 180.0f;
+
+    // 获取摄像机的前向向量
+    glm::vec3 front = _camera.transform.getFront();
+
+    ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)",
+        _camera.transform.position.x,
+        _camera.transform.position.y,
+        _camera.transform.position.z);
+
+    ImGui::Text("Camera Rotation (degrees):");
+    ImGui::Text("  X(Pitch): %.2f°", degrees.x);
+    ImGui::Text("  Y(Yaw):   %.2f°", degrees.y);
+    ImGui::Text("  Z(Roll):  %.2f°", degrees.z);
+
+    ImGui::Text("Forward Vector: (%.2f, %.2f, %.2f)", front.x, front.y, front.z);
+
+    // 显示控制模式状态
+    ImGui::Separator();
+    ImGui::Text("Control Mode: %s", _manuallycontrollight ? "Light Control" : "Character Control");
+    ImGui::Text("Mouse State: %s",
+        glfwGetInputMode(_window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED ?
+        "Locked" : "Free");
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
         1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-    ImGui::End();
+    ImGui::End(); // 结束光照设置窗口
+
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -273,10 +370,26 @@ void Core::doFrame() {
 
     if (!_manuallycontrollight) {
         _yaw += 1.0f;
-		if (_yaw > 180.0f) _yaw -= 360.0f;
-		updateLightDirection(_yaw, _pitch);
+        if (_yaw > 180.0f) _yaw -= 360.0f;
+        updateLightDirection(_yaw, _pitch);
     }
+
+    // 注意：人物位置更新已经在handleInput()中完成
     _scene->Update(_deltaTime);
+}
+
+void Core::UpdateCharacterPosition() {
+    if (!_character) return;
+
+    // 计算摄像机在人物身后的位置
+    glm::vec3 cameraOffset = -_camera.transform.getFront() * _characterDistance;
+    cameraOffset.y = _characterHeight; // 设置高度偏移
+
+    // 设置摄像机位置：人物位置 + 偏移
+    _camera.transform.position = _character->GetPosition() + cameraOffset;
+
+    // 现在摄像机位置是由人物位置决定的
+    // 人物移动通过WASD控制，摄像机跟随人物
 }
 
 void Core::SceneInitialize() {
@@ -316,6 +429,12 @@ void Core::SceneInitialize() {
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
 
+
+    // 创建人物对象并保存指针
+    _character = _scene->CreateObject(ObjectGroup::Player);
+    _character->ApplyMesh(ResourceManager::GetMesh("character"));
+    _character->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
+    _character->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
 }
 
 void Core::saveScreenshot(const std::string& filename) {
@@ -331,4 +450,27 @@ void Core::saveScreenshot(const std::string& filename) {
                width * 3);
     }
     stbi_write_png(filename.c_str(), width, height, 3, flippedPixels.data(), width * 3);
+}
+
+void Core::syncCameraAngles() {
+    if (!_character) return;
+
+    // 从摄像机的四元数旋转转换为欧拉角
+    glm::vec3 euler = glm::eulerAngles(_camera.transform.rotation);
+    glm::vec3 degrees = glm::degrees(euler);
+
+    // 规范化角度到 [-180, 180] 范围
+    degrees.x = fmod(degrees.x + 180.0f, 360.0f) - 180.0f;
+    degrees.y = fmod(degrees.y + 180.0f, 360.0f) - 180.0f;
+    degrees.z = fmod(degrees.z + 180.0f, 360.0f) - 180.0f;
+
+    // 同步摄像机角度
+    _cameraYaw = degrees.y;
+    _cameraPitch = degrees.x;
+
+    // 同步人物角度（只同步Y轴旋转）
+    glm::vec3 characterEuler = glm::eulerAngles(_character->GetRotation());
+    glm::vec3 characterDegrees = glm::degrees(characterEuler);
+    characterDegrees.y = fmod(characterDegrees.y + 180.0f, 360.0f) - 180.0f;
+    _characterYaw = characterDegrees.y;
 }
