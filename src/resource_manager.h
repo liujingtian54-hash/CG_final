@@ -3,6 +3,7 @@
 #include"base/texture2d.h"
 #include"mesh.h"
 #include"material.h"
+#include"geometry_generator.h"
 #include<map>
 #include<string>
 
@@ -31,6 +32,26 @@ public:
 
 	//name,path
 	static Mesh* LoadMesh(const std::string& name, const std::string& file);
+	static Mesh* LoadMesh(const std::string& name, ShapeType type, const std::vector<float>& params = {});
+	static Mesh* LoadCube(const std::string& name, float size) {
+		return LoadMesh(name, ShapeType::Cube, { size });
+	}
+	static Mesh* LoadSphere(const std::string& name, float radius, int segments) {
+		return LoadMesh(name, ShapeType::Sphere, { radius, (float)segments });
+	}
+	static Mesh* LoadCylinder(const std::string& name, float radius, float height, int segments) {
+		return LoadMesh(name, ShapeType::Cylinder, { radius, height, (float)segments });
+	}
+	static Mesh* LoadCone(const std::string& name, float radius, float height, int segments) {
+		return LoadMesh(name, ShapeType::Cone, { radius, height, (float)segments });
+	}
+	static Mesh* LoadPrism(const std::string& name, int sides, float radius, float height) {
+		return LoadMesh(name, ShapeType::Prism, { (float)sides, radius, height });
+	}
+	static Mesh* LoadFrustum(const std::string& name, int sides, float bottomRadius, float topRadius, float height) {
+		return LoadMesh(name, ShapeType::Frustum, { (float)sides, bottomRadius, topRadius, height });
+	}
+
 	static Mesh* GetMesh(const std::string& name);
 	static bool ExportMesh(const std::string& name, const std::string& path);
 
