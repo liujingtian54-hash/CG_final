@@ -5,12 +5,45 @@
 #include"core.h"
 #include"scene.h"
 #include"game_object.h"
+#include "mesh.h"
 #include"resource_manager.h"
 #include"shader_source.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+
+void Core::updateBuildingColliders() {
+    _buildingColliders.clear();
+
+    auto buildings = _scene->GetObjectsByGroup(ObjectGroup::Building);
+    for (auto building : buildings) {
+        auto collider = CollisionDetector::CalculateBoundingBox(building, _collisionScaleFactor);
+        _buildingColliders.push_back(collider);
+    }
+}
+
+bool Core::checkCharacterCollision(const glm::vec3& newPosition) {
+    // 计算人物在新位置的碰撞箱
+    glm::vec3 oldPosition = _character->GetPosition();
+    _character->SetPosition(newPosition);
+
+    _characterCollider = CollisionDetector::CalculateBoundingBox(_character, _collisionScaleFactor);
+
+    // 恢复原位置
+    _character->SetPosition(oldPosition);
+
+    // 检查与所有建筑物的碰撞
+    for (const auto& buildingCollider : _buildingColliders) {
+        if (CollisionDetector::CheckCollision(_characterCollider, buildingCollider)) {
+            return true; // 发生碰撞
+        }
+    }
+
+    return false; // 无碰撞
+}
+
+
 
 Core::Core(const Options& options) : Application(options), _camera(glm::radians(60.0f), 1.0f * _windowWidth / _windowHeight, 0.1f, 10000.0f), _scene(nullptr), _light() {
 	_scene = new Scene();
@@ -202,45 +235,78 @@ void Core::handleInput() {
     }
 
     if (move_state) {
+        glm::vec3 newPosition = _character->GetPosition();
+        glm::vec3 moveDelta(0.0f);
+
+        // W - 向前移动
         if (_input.keyboard.keyStates[GLFW_KEY_W] != GLFW_RELEASE) {
-            glm::vec3 moveDirection = _character->GetFront(); // 使用人物的前向
+            glm::vec3 moveDirection = _character->GetFront();
             moveDirection.y = 0;
             moveDirection = glm::normalize(moveDirection);
-            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
+            moveDelta += moveDirection * cameraMoveSpeed;
         }
 
+        // A - 向左移动
         if (_input.keyboard.keyStates[GLFW_KEY_A] != GLFW_RELEASE) {
             glm::vec3 moveDirection = -_character->GetRight(); // 使用人物的右向
             moveDirection.y = 0;
             moveDirection = glm::normalize(moveDirection);
-            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
+            moveDelta += moveDirection * cameraMoveSpeed;
         }
 
+        // S - 向后移动
         if (_input.keyboard.keyStates[GLFW_KEY_S] != GLFW_RELEASE) {
             glm::vec3 moveDirection = -_character->GetFront();
             moveDirection.y = 0;
             moveDirection = glm::normalize(moveDirection);
-            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
+            moveDelta += moveDirection * cameraMoveSpeed;
         }
 
+        // D - 向右移动
         if (_input.keyboard.keyStates[GLFW_KEY_D] != GLFW_RELEASE) {
             glm::vec3 moveDirection = _character->GetRight();
             moveDirection.y = 0;
             moveDirection = glm::normalize(moveDirection);
-            _character->SetPosition(_character->GetPosition() + moveDirection * cameraMoveSpeed);
+            moveDelta += moveDirection * cameraMoveSpeed;
         }
-        // 添加鼠标移动阈值检查，避免瞬间大角度旋转
+
+       
+        // 如果有移动输入，检查碰撞
+        if (moveDelta != glm::vec3(0.0f)) {
+            glm::vec3 proposedPosition = newPosition + moveDelta;
+
+            // 检查碰撞
+            if (!checkCharacterCollision(proposedPosition)) {
+                // 无碰撞，允许移动
+                _character->SetPosition(proposedPosition);
+            }
+            else {
+                // 发生碰撞，尝试分轴移动（提供更好的移动体验）
+
+                // 只移动X轴
+                glm::vec3 xOnlyPosition = newPosition + glm::vec3(moveDelta.x, 0.0f, 0.0f);
+                if (!checkCharacterCollision(xOnlyPosition)) {
+                    _character->SetPosition(xOnlyPosition);
+                }
+                // 只移动Z轴
+                else {
+                    glm::vec3 zOnlyPosition = newPosition + glm::vec3(0.0f, 0.0f, moveDelta.z);
+                    if (!checkCharacterCollision(zOnlyPosition)) {
+                        _character->SetPosition(zOnlyPosition);
+                    }
+                }
+                // 如果分轴移动也碰撞，则完全阻止移动
+            }
+        }
+
+        // 处理鼠标旋转（保持不变）
         float deltaX = _input.mouse.move.xNow - _input.mouse.move.xOld;
         float deltaY = _input.mouse.move.yNow - _input.mouse.move.yOld;
 
-
-        // 处理鼠标旋转
         if (deltaX != 0.0f) {
-            // 修改3：使用更平滑的旋转计算
             _cameraYaw -= deltaX * cameraRotateSpeed;
             _characterYaw -= deltaX * cameraRotateSpeed;
 
-            // 限制角度
             if (_cameraYaw > 180.0f) _cameraYaw -= 360.0f;
             if (_cameraYaw < -180.0f) _cameraYaw += 360.0f;
             if (_characterYaw > 180.0f) _characterYaw -= 360.0f;
@@ -259,6 +325,7 @@ void Core::handleInput() {
             updateCameraRotation();
         }
     }
+
 
     _input.forwardState();
     UpdateCharacterPosition(); // 摄像机跟随人物
@@ -389,19 +456,6 @@ void Core::doFrame() {
     _scene->Update(_deltaTime);
 }
 
-void Core::UpdateCharacterPosition() {
-    if (!_character) return;
-
-    // 计算摄像机在人物身后的位置
-    glm::vec3 cameraOffset = -_camera.transform.getFront() * _characterDistance;
-    cameraOffset.y = _characterHeight; // 设置高度偏移
-
-    // 设置摄像机位置：人物位置 + 偏移
-    _camera.transform.position = _character->GetPosition() + cameraOffset;
-
-    // 现在摄像机位置是由人物位置决定的
-    // 人物移动通过WASD控制，摄像机跟随人物
-}
 
 void Core::New(ObjectGroup ObjGroup, Mesh* mesh, MixMaterial* material, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz) {
     GameObject* obj = _scene->CreateObject(ObjGroup);
@@ -550,21 +604,21 @@ void Core::SceneInitialize() {
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
 	//树木
-    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj = _scene->CreateObject(ObjectGroup::Building);
     obj->ApplyMesh(ResourceManager::GetMesh("tree1"));
     obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     obj->SetPosition(glm::vec3(0.6f, 0.0f, -0.4f));
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
-    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj = _scene->CreateObject(ObjectGroup::Building);
     obj->ApplyMesh(ResourceManager::GetMesh("tree2"));
     obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     obj->SetPosition(glm::vec3(-1.2f, 0.0f, -1.0f));
     obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
     obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
-    obj = _scene->CreateObject(ObjectGroup::Object);
+    obj = _scene->CreateObject(ObjectGroup::Building);
     obj->ApplyMesh(ResourceManager::GetMesh("tree3"));
     obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     obj->SetPosition(glm::vec3(1.0f, 0.0f, -2.0f));
@@ -576,6 +630,12 @@ void Core::SceneInitialize() {
     _character->ApplyMesh(ResourceManager::GetMesh("character"));
     _character->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
     _character->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
+
+    // 初始化建筑物碰撞箱
+    updateBuildingColliders();
+
+    // 初始化人物碰撞箱
+    _characterCollider = CollisionDetector::CalculateBoundingBox(_character, _collisionScaleFactor);
 }
 
 void Core::saveScreenshot(const std::string& filename) {

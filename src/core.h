@@ -5,6 +5,7 @@
 #include"base/camera.h"
 #include"base/light.h"
 #include"scene.h"
+#include "collision_detector.h"
 
 class Core : public Application {
 public:
@@ -12,13 +13,27 @@ public:
 	~Core();
 	void init();//do other steps in init
 private:
+	// 添加碰撞检测相关成员
+	std::vector<CollisionDetector::BoundingBox> _buildingColliders;
+	CollisionDetector::BoundingBox _characterCollider;
+	float _collisionScaleFactor = 0.8f; // 碰撞箱缩放因子
 
-	void UpdateCharacterPosition(); // 添加人物位置更新函数
+	void updateBuildingColliders();
+	bool checkCharacterCollision(const glm::vec3& newPosition);
+
+	
 	GameObject* _character; // 人物对象指针
 	float _characterDistance; // 跟随距离
 	float _characterHeight; // 高度偏移
 
 	void syncCameraAngles(); // 同步摄像机角度到控制变量
+	void UpdateCharacterPosition() {
+		if (!_character) return;
+
+		glm::vec3 cameraOffset = -_camera.transform.getFront() * _characterDistance;
+		cameraOffset.y = _characterHeight;
+		_camera.transform.position = _character->GetPosition() + cameraOffset;
+	} // 只声明，不定义
 
 	PerspectiveCamera _camera;
 	Scene* _scene;
