@@ -33,6 +33,26 @@ GLSLProgram* ResourceManager::LoadShader(const std::string& name, const std::str
     shaders[name] = shader;
     return shader;
 }
+GLSLProgram* ResourceManager::LoadShaderFromFile(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile) {
+    if (shaders.find(name) != shaders.end()) {
+        return shaders[name];
+    }
+
+    GLSLProgram* shader = new GLSLProgram();
+    try {
+        shader->attachVertexShaderFromFile(vShaderFile);
+        shader->attachFragmentShaderFromFile(fShaderFile);
+        shader->link();
+    }
+    catch (std::exception& e) {
+        std::cerr << "ERROR::SHADER::LOAD_FAILED: " << name << "\n" << e.what() << std::endl;
+        delete shader;
+        return nullptr;
+    }
+
+    shaders[name] = shader;
+    return shader;
+}
 
 GLSLProgram* ResourceManager::GetShader(const std::string& name) {
     if (shaders.find(name) != shaders.end())
@@ -151,6 +171,7 @@ Mesh* ResourceManager::LoadMesh(const std::string& name, ShapeType type, const s
         std::cerr << "ERROR::MESH::LOAD_FAILED: Unknown ShapeType" << std::endl;
         return nullptr;
     }
+    return mesh;
 }
 
 Mesh* ResourceManager::GetMesh(const std::string& name) {
@@ -166,7 +187,7 @@ bool ResourceManager::ExportMesh(const std::string& name, const std::string& pat
         std::cerr << "ERROR::MESH::EXPORT_FAILED: Mesh not found: " << name << std::endl;
         return false;
     }
-    return ObjLoader::ExportObj(name, path);
+    return ObjLoader::ExportObj(name, name, path);
 }
 
 MixMaterial* ResourceManager::AddMaterial(const std::string& name, MixMaterial* material) {

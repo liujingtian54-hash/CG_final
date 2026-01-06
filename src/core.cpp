@@ -6,6 +6,7 @@
 #include"scene.h"
 #include"game_object.h"
 #include"resource_manager.h"
+#include"shader_source.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -45,7 +46,7 @@ void Core::init() {
     ImGui_ImplGlfw_InitForOpenGL(_window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 	//resource initialize
-    ResourceManager::LoadShader("phong_shader", 
+   /* ResourceManager::LoadShader("phong_shader",
         "#version 330 core\n"
         "layout(location = 0) in vec3 aPosition;\n"
         "layout(location = 1) in vec3 aNormal;\n"
@@ -100,7 +101,15 @@ void Core::init() {
         "    vec3 normal = normalize(fNormal);\n"
         "    vec3 diffuse = calcDirectionalLight(normal, localkds);\n"
         "    color = vec4(diffuse , 1.0f);\n"
-        "}\n");
+        "}\n");*/
+    ResourceManager::LoadShader("Blinn_Phongshader",
+        ShaderSource::Blinn_PhongVertexShader,
+		ShaderSource::Blinn_PhongFragmentShader);
+	//顺序应该是先加载贴图再加材质，然后才能导入mesh
+    ResourceManager::LoadTexture("white", "../media/texture/white.png");
+
+    ResourceManager::AddMaterial("white_material", new MixMaterial(ResourceManager::GetShader("Blinn_Phongshader"),
+        ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white")));
 
     ResourceManager::LoadMesh("building1", "../media/obj/fangjian1.obj");
 //    ResourceManager::LoadMesh("building1_exported", "../media/obj/building1_exported.obj");
@@ -117,15 +126,9 @@ void Core::init() {
     ResourceManager::LoadMesh("road3", "../media/obj/dizhuan3.obj");
 
     ResourceManager::LoadMesh("character", "../media/obj/character_walk_01.obj");
-
-    ResourceManager::LoadTexture("white", "../media/texture/white.png");
-
-    ResourceManager::AddMaterial("white_material", new MixMaterial(ResourceManager::GetShader("phong_shader"),
-    ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white")));
-
 	//只是表明我们做了导出功能
 	//实际上对于这个项目来说，并不需要导出功能
-	ResourceManager::ExportMesh("building1", "../media/obj/building1_exported.obj");
+//	ResourceManager::ExportMesh("building1", "../media/obj/building1_exported.obj");
     SceneInitialize();
 }
 
@@ -343,10 +346,13 @@ void Core::renderFrame() {
 }
 
 void Core::render() {
-    GLSLProgram* s = ResourceManager::GetShader("phong_shader");
+    GLSLProgram* s = ResourceManager::GetShader("Blinn_Phongshader");
     s->setUniformMat4("projection", _camera.getProjectionMatrix());
     s->setUniformMat4("view", _camera.getViewMatrix());
-    s->setUniformVec3("light.direction", _light.transform.getFront());
+	s->setUniformVec3("viewPos", _camera.transform.position);
+    glm::quat rot = _light.transform.rotation;
+    glm::vec3 direction = glm::vec3(rot.x, rot.y, rot.z);
+    s->setUniformVec3("light.direction", direction);
     s->setUniformVec3("light.color", _light.color);
     s->setUniformFloat("light.intensity", _light.intensity);
 
@@ -374,7 +380,7 @@ void Core::doFrame() {
         glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     if (!_manuallycontrollight) {
-        _yaw += 1.0f;
+        _yaw += 0.01f;
         if (_yaw > 180.0f) _yaw -= 360.0f;
         updateLightDirection(_yaw, _pitch);
     }
@@ -397,6 +403,14 @@ void Core::UpdateCharacterPosition() {
     // 人物移动通过WASD控制，摄像机跟随人物
 }
 
+void Core::New(ObjectGroup ObjGroup, Mesh* mesh, MixMaterial* material, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz) {
+    GameObject* obj = _scene->CreateObject(ObjGroup);
+    obj->ApplyMesh(mesh);
+    obj->ApplyMaterial(material);
+    obj->SetPosition(glm::vec3(posx, posy, posz));
+    obj->SetRotation(glm::vec3(rotx, roty, rotz));
+    obj->SetScale(glm::vec3(sx, sy, sz));
+}
 void Core::SceneInitialize() {
     GameObject* obj;
 

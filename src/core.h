@@ -27,6 +27,7 @@ private:
 	void renderFrame() override;
 
 	void SceneInitialize();
+	void New(ObjectGroup ObjGroup, Mesh* mesh, MixMaterial* material, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz);
 
 	void render();
 	void doFrame();

@@ -25,6 +25,7 @@ public:
 		materials.clear();
 	}
 	static GLSLProgram* LoadShader(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile);
+	static GLSLProgram* LoadShaderFromFile(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile);
 	static GLSLProgram* GetShader(const std::string& name);
 
 	static Texture2D* LoadTexture(const std::string& name, const std::string& file);

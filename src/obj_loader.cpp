@@ -115,20 +115,62 @@ bool ObjLoader::LoadObj(const std::string& path,
 				}
 			}
 		}
+		else if (s00_s[0] == "mtllib") {
+			std::string mtlPath = path.substr(0, path.find_last_of("/") + 1) + s00_s[1];
+			std::ifstream mtlFile(mtlPath);
+			if (!mtlFile.is_open()) {
+				std::cerr << "Failed to open MTL file: " << mtlPath << std::endl;
+				continue;
+			}
+			std::string s01;
+			MixMaterial* material = new MixMaterial(ResourceManager::GetShader("Blinn_Phongshader"), ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white"));
+			while(std::getline(mtlFile, s01)) {
+				if (s01.empty())
+					continue;
+				std::vector<std::string> s01_s = string_split(s01, ' ', true);
+				if (s01_s.empty())
+					continue;
+				if (s01_s[0] == "Ka") {
+					if (s01_s.size() < 4)
+						continue;
+					material->ka[0] = std::stof(s01_s[1]);
+					material->ka[1] = std::stof(s01_s[2]);
+					material->ka[2] = std::stof(s01_s[3]);
+				}
+				else if (s01_s[0] == "Kd") {
+					if (s01_s.size() < 4)
+						continue;
+					material->kds1[0] = std::stof(s01_s[1]);
+					material->kds1[1] = std::stof(s01_s[2]);
+					material->kds1[2] = std::stof(s01_s[3]);
+				}
+				else if (s01_s[0] == "Ks") {
+					if (s01_s.size() < 4)
+						continue;
+					material->ks[0] = std::stof(s01_s[1]);
+					material->ks[1] = std::stof(s01_s[2]);
+					material->ks[2] = std::stof(s01_s[3]);
+				}
+				else
+					continue;
+			}
+			ResourceManager::AddMaterial(s00_s[1].substr(0,s00_s[1].size()-4), material);
+			mtlFile.close();
+		}
 		else
 			continue;
 	}
-
 	return true;
 }
 
-bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& path) {
+bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& material_name, const std::string& path) {
 	std::ofstream file(path);
 	if (!file.is_open()) {
 		std::cerr << "Failed to open file for writing: " << path << std::endl;
 		return false;
 	}
 	file << "# Exported OBJ file: " << mesh_name << "\n";
+	file << "mtllib " << material_name << ".mtl\n";
 	Mesh* mesh = ResourceManager::GetMesh(mesh_name);
 	for(auto& iter : mesh->GetVertices()) {
 		file << "v " << iter.position.x << " " << iter.position.y << " " << iter.position.z << "\n";
@@ -149,5 +191,19 @@ bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& path)
 	}
 
 	file.close();
+
+	std::ofstream mtlFile(path.substr(0, path.find_last_of(".") + 1) + "mtl");
+	if (!mtlFile.is_open()) {
+		std::cerr << "Failed to open MTL file for writing: " << path << std::endl;
+		return false;
+	}
+	MixMaterial* material = ResourceManager::GetMaterial(material_name);
+	mtlFile << "# Exported MTL file: " << material_name << "\n";
+	mtlFile << "newmtl " << material_name << "\n";
+	mtlFile << "Ka " << material->ka[0] << " " << material->ka[1] << " " << material->ka[2] << "\n";
+	mtlFile << "Kd " << material->kds1[0] << " " << material->kds1[1] << " " << material->kds1[2] << "\n";
+	mtlFile << "Ks " << material->ks[0] << " " << material->ks[1] << " " << material->ks[2] << "\n";
+	mtlFile.close();
+
 	return true;
 }

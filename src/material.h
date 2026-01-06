@@ -64,9 +64,11 @@ class MixMaterial : public Material {
 public:
     Texture2D* tex1;
     Texture2D* tex2;
-    glm::vec3 kds1;
-    glm::vec3 kds2;
+    glm::vec3 kds1 = glm::vec3(1.0f,1.0f,1.0f);
+    glm::vec3 kds2 = glm::vec3(1.0f,1.0f,1.0f);
     float blend = 0.0f;
+    float ka[3] = {0.0f,0.0f,0.0f};
+    float ks[3] = {0.0f,0.0f,0.0f};
 
     MixMaterial(GLSLProgram* shader, Texture2D* t1, Texture2D* t2);
     ~MixMaterial() override;
