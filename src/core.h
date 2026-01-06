@@ -4,6 +4,7 @@
 #include"base/application.h"
 #include"base/camera.h"
 #include"base/light.h"
+#include"base/skybox.h"
 #include"scene.h"
 #include "collision_detector.h"
 
@@ -31,13 +32,15 @@ private:
 		if (!_character) return;
 
 		glm::vec3 cameraOffset = -_camera.transform.getFront() * _characterDistance;
-		cameraOffset.y = _characterHeight;
+		cameraOffset.y += _characterHeight;
 		_camera.transform.position = _character->GetPosition() + cameraOffset;
 	} // 只声明，不定义
 
 	PerspectiveCamera _camera;
 	Scene* _scene;
 	DirectionalLight _light;
+	SkyBox* skybox[2] = {nullptr, nullptr};
+	unsigned int skyboxIndex = 0;
 	void handleInput() override;
 	void renderFrame() override;
 

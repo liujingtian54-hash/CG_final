@@ -9,6 +9,8 @@
 #include"resource_manager.h"
 #include"shader_source.h"
 
+#include"base/skybox.h"
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -78,63 +80,8 @@ void Core::init() {
 	ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(_window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
 	//resource initialize
-   /* ResourceManager::LoadShader("phong_shader",
-        "#version 330 core\n"
-        "layout(location = 0) in vec3 aPosition;\n"
-        "layout(location = 1) in vec3 aNormal;\n"
-        "layout(location = 2) in vec2 aTexCoord;\n"
-
-        "out vec3 fPosition;\n"
-        "out vec3 fNormal;\n"
-        "out vec2 fTexCoord;\n"
-
-        "uniform mat4 projection;\n"
-        "uniform mat4 view;\n"
-        "uniform mat4 model;\n"
-
-        "void main() {\n"
-        "    fPosition = vec3(model * vec4(aPosition, 1.0f));\n"
-        "    fNormal = mat3(transpose(inverse(model))) * aNormal;\n"
-        "    fTexCoord = aTexCoord;\n"
-        "    gl_Position = projection * view * model * vec4(aPosition, 1.0f);\n"
-        "}\n",
-
-        "#version 330 core\n"
-        "in vec3 fPosition;\n"
-        "in vec3 fNormal;\n"
-        "in vec2 fTexCoord;\n"
-        "out vec4 color;\n"
-
-        "struct DirectionalLight {\n"
-        "    vec3 direction;\n"
-        "    vec3 color;\n"
-        "    float intensity;\n"
-        "};\n"
-
-        "struct Material {\n"
-        "    vec3 kds[2];\n"
-        "    float blend;\n"
-        "};\n"
-
-        "uniform Material material;\n"
-        "uniform DirectionalLight light;\n"
-        "uniform sampler2D mapKds[2];\n"
-
-        "vec3 calcDirectionalLight(vec3 normal, vec3 kds) {\n"
-        "    vec3 lightDir = normalize(-light.direction);\n"
-        "    vec3 diffuse = light.color * max(dot(lightDir, normal), 0.0f);\n"
-        "    return light.color * light.intensity * kds * diffuse;\n"
-        "}\n"
-
-        "void main() {\n"
-        "    vec3 color1 = texture(mapKds[0], fTexCoord).rgb * material.kds[0];\n"
-        "    vec3 color2 = texture(mapKds[1], fTexCoord).rgb * material.kds[1];\n"
-        "    vec3 localkds = mix(color1,color2,material.blend);\n"
-        "    vec3 normal = normalize(fNormal);\n"
-        "    vec3 diffuse = calcDirectionalLight(normal, localkds);\n"
-        "    color = vec4(diffuse , 1.0f);\n"
-        "}\n");*/
     ResourceManager::LoadShader("Blinn_Phongshader",
         ShaderSource::Blinn_PhongVertexShader,
 		ShaderSource::Blinn_PhongFragmentShader);
@@ -162,6 +109,24 @@ void Core::init() {
 	//只是表明我们做了导出功能
 	//实际上对于这个项目来说，并不需要导出功能
 //	ResourceManager::ExportMesh("building1", "../media/obj/building1_exported.obj");
+
+    std::vector<std::string> paths = {
+        "../media/texture/skybox/Right_Tex.jpg",
+        "../media/texture/skybox/Left_Tex.jpg",
+        "../media/texture/skybox/Up_Tex.jpg",
+        "../media/texture/skybox/Down_Tex.jpg",
+        "../media/texture/skybox/Front_Tex.jpg",
+        "../media/texture/skybox/Back_Tex.jpg"
+	};
+    skybox[0] = new SkyBox(paths);
+	paths[0] = "../media/texture/skyboxrt/right.jpg";
+	paths[1] = "../media/texture/skyboxrt/left.jpg";
+	paths[2] = "../media/texture/skyboxrt/top.jpg";
+	paths[3] = "../media/texture/skyboxrt/bottom.jpg";
+	paths[4] = "../media/texture/skyboxrt/front.jpg";
+	paths[5] = "../media/texture/skyboxrt/back.jpg";
+	skybox[1] = new SkyBox(paths);
+	//scene initialize
     SceneInitialize();
 }
 
@@ -404,6 +369,18 @@ void Core::renderFrame() {
 
     ImGui::End(); // 结束光照设置窗口
 
+	ImGui::Begin("SkyBox Settings");
+	if (ImGui::Button("SkyBox 1")) {
+		skyboxIndex = 0;
+	}
+	ImGui::SameLine();
+    if (ImGui::Button("SkyBox 2")) {
+        skyboxIndex = 1;
+    }
+    ImGui::SameLine();
+	ImGui::Text("Current SkyBox: %d", skyboxIndex + 1);
+    ImGui::End();
+
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -413,7 +390,9 @@ void Core::renderFrame() {
 }
 
 void Core::render() {
+	skybox[skyboxIndex]->draw(_camera.getProjectionMatrix(), glm::mat4(glm::mat3(_camera.getViewMatrix())));
     GLSLProgram* s = ResourceManager::GetShader("Blinn_Phongshader");
+    s->use();
     s->setUniformMat4("projection", _camera.getProjectionMatrix());
     s->setUniformMat4("view", _camera.getViewMatrix());
 	s->setUniformVec3("viewPos", _camera.transform.position);
