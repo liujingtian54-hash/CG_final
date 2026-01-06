@@ -69,50 +69,52 @@ namespace ShaderSource {
 	in vec2 fTexCoord;
 	out vec4 color;
 
-	struct DirectionalLight {
+	struct Light {
 		vec3 direction;
-		vec3 color;
+		vec3 Diffusecolor;
+		vec3 Ambientcolor;
+		vec3 Specularcolor;
 		float intensity;
 	};
 
 	struct Material {
 		vec3 kds[2];
 		float blend;
-		vec3 ka;
-		vec3 kd;
 		vec3 ks;
+		float N;
 	};
 
 	uniform Material material;
-	uniform DirectionalLight light;
+	uniform Light light;
 	uniform sampler2D mapKds[2];
 	uniform vec3 viewPos;
 
 	vec3 calcAmbientLight(vec3 kds) {
-		return material.ka * kds;
+		return light.Ambientcolor * kds;
 	}
 	vec3 calcLambertLight(vec3 normal, vec3 kds) {
 		vec3 lightDir = normalize(-light.direction);
-		vec3 diffuse = light.color * max(dot(lightDir, normal), 0.0f);
+		vec3 diffuse = light.Diffusecolor * max(dot(lightDir, normal), 0.0f);
 		return light.intensity * kds * diffuse;
 	}
 
 	vec3 calcSpecularLight(vec3 normal, vec3 viewDir, vec3 kds, vec3 ks) {
 		vec3 lightDir = normalize(-light.direction);
 		vec3 halfwayDir = normalize(lightDir + normalize(-viewDir));
-		float spec = pow(max(dot(viewDir, halfwayDir), 0.0f), 32.0f);
-		vec3 specular = light.color * spec;
+		float spec = pow(max(dot(viewDir, halfwayDir), 0.0f), material.N);
+		vec3 specular = light.Specularcolor * spec;
 		return light.intensity * ks * specular;
 	}
 
 	void main() {
 		vec3 color1 = texture(mapKds[0], fTexCoord).rgb * material.kds[0];
 		vec3 color2 = texture(mapKds[1], fTexCoord).rgb * material.kds[1];
-		vec3 localkds = mix(color1,color2,material.blend);
+		vec3 material_kd = mix(color1,color2,material.blend);
 		vec3 normal = normalize(fNormal);
-		vec3 diffuse = calcLambertLight(normal, localkds);
-		vec3 diffuse2 = calcSpecularLight(normal, normalize(viewPos - fPosition), localkds, material.ks);
-		vec3 diffuse3 = calcAmbientLight(localkds);
-		color = vec4(diffuse3, 1.0f) + vec4(diffuse, 1.0f) + vec4(diffuse2, 1.0f);
+		vec3 diffuse = calcLambertLight(normal, material_kd);
+		vec3 diffuse2 = calcAmbientLight(material_kd);
+		vec3 diffuse3 = calcSpecularLight(normal, normalize(viewPos - fPosition), material_kd, material.ks);
+		vec3 temp = diffuse + diffuse2 + diffuse3;
+		color = vec4(temp, 1.0f);
 	})";
 }

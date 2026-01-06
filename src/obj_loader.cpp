@@ -130,13 +130,6 @@ bool ObjLoader::LoadObj(const std::string& path,
 				std::vector<std::string> s01_s = string_split(s01, ' ', true);
 				if (s01_s.empty())
 					continue;
-				if (s01_s[0] == "Ka") {
-					if (s01_s.size() < 4)
-						continue;
-					material->ka[0] = std::stof(s01_s[1]);
-					material->ka[1] = std::stof(s01_s[2]);
-					material->ka[2] = std::stof(s01_s[3]);
-				}
 				else if (s01_s[0] == "Kd") {
 					if (s01_s.size() < 4)
 						continue;
@@ -150,6 +143,11 @@ bool ObjLoader::LoadObj(const std::string& path,
 					material->ks[0] = std::stof(s01_s[1]);
 					material->ks[1] = std::stof(s01_s[2]);
 					material->ks[2] = std::stof(s01_s[3]);
+				}
+				else if (s01_s[0] == "Ns") {
+					if (s01_s.size() < 2)
+						continue;
+					material->N = std::stof(s01_s[1]);
 				}
 				else
 					continue;
@@ -200,7 +198,7 @@ bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& mater
 	MixMaterial* material = ResourceManager::GetMaterial(material_name);
 	mtlFile << "# Exported MTL file: " << material_name << "\n";
 	mtlFile << "newmtl " << material_name << "\n";
-	mtlFile << "Ka " << material->ka[0] << " " << material->ka[1] << " " << material->ka[2] << "\n";
+	mtlFile << "Ka " << 0.0000 << " " << 0.0000 << " " << 0.0000 << "\n";
 	mtlFile << "Kd " << material->kds1[0] << " " << material->kds1[1] << " " << material->kds1[2] << "\n";
 	mtlFile << "Ks " << material->ks[0] << " " << material->ks[1] << " " << material->ks[2] << "\n";
 	mtlFile.close();

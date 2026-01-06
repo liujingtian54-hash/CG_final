@@ -47,7 +47,9 @@ bool Core::checkCharacterCollision(const glm::vec3& newPosition) {
 
 
 
-Core::Core(const Options& options) : Application(options), _camera(glm::radians(60.0f), 1.0f * _windowWidth / _windowHeight, 0.1f, 10000.0f), _scene(nullptr), _light() {
+Core::Core(const Options& options) : Application(options), 
+_camera(glm::radians(60.0f), 1.0f * _windowWidth / _windowHeight, 0.1f, 10000.0f), 
+_scene(nullptr), _light() {
 	_scene = new Scene();
     _light.transform = Transform();
     //_light.transform.rotation = glm::vec3(-1.0f, -1.0f, -1.0f);
@@ -296,7 +298,6 @@ void Core::handleInput() {
     UpdateCharacterPosition(); // 摄像机跟随人物
 }
 
-//TODO:处理render和frame。建议通过辅助函数，分为render和frame两部分处理，把渲染逻辑和帧逻辑分开。
 void Core::renderFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -399,7 +400,9 @@ void Core::render() {
     glm::quat rot = _light.transform.rotation;
     glm::vec3 direction = glm::vec3(rot.x, rot.y, rot.z);
     s->setUniformVec3("light.direction", direction);
-    s->setUniformVec3("light.color", _light.color);
+	s->setUniformVec3("light.Ambientcolor", glm::vec3(0.2f,0.2f,0.25f));
+    s->setUniformVec3("light.Diffusecolor", _light.color);
+	s->setUniformVec3("light.Specularcolor", glm::vec3(1.0f, 1.0f, 1.0f));
     s->setUniformFloat("light.intensity", _light.intensity);
 
     _scene->Render();
