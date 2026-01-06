@@ -83,7 +83,7 @@ void Scene::Update(float deltaTime) {
 void Scene::Render() {
     for (auto& pair : gameObjects) {
         GameObject* obj = pair.second;
-        if (obj->GetMesh() && obj->GetMaterial()) {
+        if (obj->GetModel()) {
             obj->Draw();
         }
     }
@@ -93,7 +93,7 @@ void Scene::Render() {
 void Scene::RenderGroup(ObjectGroup group, GLSLProgram* shader) {
     for (auto& pair : gameObjects) {
         GameObject* obj = pair.second;
-        if (obj->group == group && obj->GetMesh() && obj->GetMaterial()) {
+        if (obj->group == group && obj->GetModel()) {
             if (shader) {
                 // 使用指定的shader
             }

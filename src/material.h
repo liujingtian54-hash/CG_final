@@ -36,4 +36,14 @@ public:
     MixMaterial(GLSLProgram* shader, Texture2D* t1, Texture2D* t2);
     ~MixMaterial() override;
     void Setup() override; 
+
+    bool operator==(const MixMaterial& other) {
+        return this->tex1 == other.tex1 &&
+               this->tex2 == other.tex2 &&
+               this->kds1 == other.kds1 &&
+               this->kds2 == other.kds2 &&
+               this->ks == other.ks &&
+               this->blend == other.blend &&
+			this->N == other.N;
+	}
 };

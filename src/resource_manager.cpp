@@ -2,6 +2,7 @@
 #include"base/texture2d.h"
 #include"mesh.h"
 #include"material.h"
+#include"model.h"
 #include"resource_manager.h"
 #include"obj_loader.h"
 #include"geometry_generator.h"
@@ -12,6 +13,7 @@ std::map<std::string, Texture2D*> ResourceManager::textures;
 std::map<std::string, Mesh*> ResourceManager::meshes;
 std::map<std::string, MixMaterial*> ResourceManager::materials;
 std::map<std::string, GLSLProgram*> ResourceManager::shaders;
+std::map<std::string, Model*> ResourceManager::models;
 
 GLSLProgram* ResourceManager::LoadShader(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile) {
     if (shaders.find(name) != shaders.end()) {
@@ -77,27 +79,26 @@ Texture2D* ResourceManager::GetTexture(const std::string& name) {
 }
 
 // --- Mesh 实现 ---
-Mesh* ResourceManager::LoadMesh(const std::string& name, const std::string& file) {
-    if (meshes.find(name) != meshes.end())
-        return meshes[name];
-
-    // 使用 ObjLoader 加载数据
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
-
+Model* ResourceManager::LoadModel(const std::string& name, const std::string& file) {
+    if (models.find(name) != models.end())
+        return models[name];
     // 调用你的 ObjLoader (假设是静态方法)
-    bool success = ObjLoader::LoadObj(file, vertices, indices);
+    Model* model = ObjLoader::LoadObj(file);
 
-    if (!success) {
+    if (!model) {
         std::cerr << "ERROR::MESH::LOAD_FAILED: " << file << std::endl;
         return nullptr;
     }
 
     // 创建 Mesh 对象 (假设 Mesh 构造函数接受 vertices 和 indices)
-    Mesh* mesh = new Mesh(vertices, indices);
-
-    meshes[name] = mesh;
-    return mesh;
+    models[name] = model;
+    return model;
+}
+Model* ResourceManager::GetModel(const std::string& name) {
+    if (models.find(name) != models.end())
+        return models[name];
+    std::cerr << "WARNING::MODEL_NOT_FOUND: " << name << std::endl;
+    return nullptr;
 }
 
 Mesh* ResourceManager::LoadMesh(const std::string& name, ShapeType type, const std::vector<float>& params) {
@@ -192,7 +193,7 @@ bool ResourceManager::ExportMesh(const std::string& name, const std::string& pat
 
 MixMaterial* ResourceManager::AddMaterial(const std::string& name, MixMaterial* material) {
     if (materials.find(name) != materials.end()) {
-        std::cerr << "WARNING::MATERIAL_ALREADY_EXISTS: " << name << " (Overwriting)" << std::endl;
+        std::cerr << "[ResourceManager::AddMaterial]WARNING::MATERIAL_ALREADY_EXISTS: " << name << " (Overwriting)" << std::endl;
         delete materials[name]; // 如果覆盖，先删除旧的防止泄漏
     }
     materials[name] = material;
@@ -202,6 +203,6 @@ MixMaterial* ResourceManager::AddMaterial(const std::string& name, MixMaterial* 
 MixMaterial* ResourceManager::GetMaterial(const std::string& name) {
     if (materials.find(name) != materials.end())
         return materials[name];
-    std::cerr << "WARNING::MATERIAL_NOT_FOUND: " << name << std::endl;
+    std::cerr << "[ResourceManager::GetMaterial]WARNING::MATERIAL_NOT_FOUND: " << name << std::endl;
     return nullptr;
 }

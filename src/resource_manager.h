@@ -3,6 +3,7 @@
 #include"base/texture2d.h"
 #include"mesh.h"
 #include"material.h"
+#include"model.h"
 #include"geometry_generator.h"
 #include<map>
 #include<string>
@@ -13,16 +14,19 @@ public:
 	static std::map<std::string, Texture2D*> textures;
 	static std::map<std::string, Mesh*> meshes;
 	static std::map<std::string, MixMaterial*> materials;
+	static std::map<std::string, Model*> models;
 	static std::map<std::string, GLSLProgram*> shaders;
 	static void Clear() {
 		for (auto& iter : shaders) delete iter.second;
 		for (auto& iter : textures) delete iter.second;
 		for (auto& iter : meshes) delete iter.second;
 		for (auto& iter : materials) delete iter.second;
+		for (auto& iter : models) delete iter.second;
 		shaders.clear();
 		textures.clear();
 		meshes.clear();
 		materials.clear();
+		models.clear();
 	}
 	static GLSLProgram* LoadShader(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile);
 	static GLSLProgram* LoadShaderFromFile(const std::string& name, const std::string& vShaderFile, const std::string& fShaderFile);
@@ -32,8 +36,17 @@ public:
 	static Texture2D* GetTexture(const std::string& name);
 
 	//name,path
-	static Mesh* LoadMesh(const std::string& name, const std::string& file);
+	static Model* LoadModel(const std::string& name, const std::string& file);
+	static Model* GetModel(const std::string& name);
 	static Mesh* LoadMesh(const std::string& name, ShapeType type, const std::vector<float>& params = {});
+	static Mesh* AddMesh(const std::string& name, Mesh* mesh) {
+		if (meshes.find(name) != meshes.end()) {
+			std::cerr << "WARNING::MESH_ALREADY_EXISTS: " << name << " (Overwriting)" << std::endl;
+			delete meshes[name]; // Èç¹û¸²¸Ç£¬ÏÈÉ¾³ý¾ÉµÄ·ÀÖ¹Ð¹Â©
+		}
+		meshes[name] = mesh;
+		return mesh;
+	}
 	static Mesh* LoadCube(const std::string& name, float size) {
 		return LoadMesh(name, ShapeType::Cube, { size });
 	}

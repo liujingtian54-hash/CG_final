@@ -5,6 +5,7 @@
 #include "mesh.h"
 #include "base/texture2d.h"
 #include "material.h"
+#include "model.h"
 
 enum class ObjectGroup {
     Object,
@@ -17,8 +18,7 @@ enum class ObjectGroup {
 class GameObject {
 private:
     Transform transform;
-    Mesh* mesh = nullptr;
-    MixMaterial* material = nullptr;
+    Model* model;
 
 public:
     const unsigned int id;
@@ -27,14 +27,12 @@ public:
     bool doorOpen = false;
     float doorAngle = 0.0f;
 
-    GameObject(unsigned int uid, ObjectGroup g) : id(uid), group(g),transform(),mesh(nullptr),material(nullptr) {};
+    GameObject(unsigned int uid, ObjectGroup g) : id(uid), group(g),transform(),model(nullptr) {};
     ~GameObject() = default;
-    void ApplyMesh(Mesh* m) { mesh = m; }
-    Mesh* GetMesh() const { return mesh; }
+	void AddModel(Model* m) { model = m; }
+	Model* GetModel() const { return model; }
     void SetTransform(const Transform& t) { transform = t; }
     Transform GetTransform() const { return transform; }
-    void ApplyMaterial(MixMaterial* mat) { material = mat; }
-    MixMaterial* GetMaterial() const { return material; }
     void SetPosition(const glm::vec3& position);
     glm::vec3 GetPosition() const;
     void SetRotation(const glm::quat& rotation);
@@ -51,10 +49,8 @@ public:
     void LookAt(const glm::vec3& target, const glm::vec3& up = glm::vec3(0.0f, 1.0f, 0.0f));
     void UpdateDoor(float deltaTime);
     void Draw() {
-        if (mesh && material) {
-            material->Setup();
-            material->shader->setUniformMat4("model", transform.getLocalMatrix());
-            mesh->Draw();
+        if (model) {
+            model->Draw(transform);
         }
     }
 };

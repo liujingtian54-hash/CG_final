@@ -6,6 +6,7 @@
 #include"base/light.h"
 #include"base/skybox.h"
 #include"scene.h"
+#include"model.h"
 #include "collision_detector.h"
 
 class Core : public Application {
@@ -45,7 +46,7 @@ private:
 	void renderFrame() override;
 
 	void SceneInitialize();
-	void New(ObjectGroup ObjGroup, Mesh* mesh, MixMaterial* material, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz);
+	GameObject* New(ObjectGroup ObjGroup, Model* model, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz);
 
 	void render();
 	void doFrame();

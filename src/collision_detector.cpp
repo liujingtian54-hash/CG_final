@@ -8,11 +8,15 @@ bool CollisionDetector::CheckCollision(const BoundingBox& a, const BoundingBox& 
 }
 
 CollisionDetector::BoundingBox CollisionDetector::CalculateBoundingBox(GameObject* obj, float scaleFactor) {
-    if (!obj || !obj->GetMesh()) {
+    if (!obj || !obj->GetModel() || !obj->GetModel()->meshes.empty()) {
         return BoundingBox();
     }
 
-    auto vertices = obj->GetMesh()->GetVertices();
+    auto vertices = obj->GetModel()->meshes[0].mesh->GetVertices();
+    for(int i=1;i<obj->GetModel()->meshes.size();++i){
+        auto moreVertices = obj->GetModel()->meshes[i].mesh->GetVertices();
+        vertices.insert(vertices.end(), moreVertices.begin(), moreVertices.end());
+	}
     if (vertices.empty()) {
         return BoundingBox();
     }

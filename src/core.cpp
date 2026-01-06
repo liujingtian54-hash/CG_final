@@ -5,7 +5,9 @@
 #include"core.h"
 #include"scene.h"
 #include"game_object.h"
-#include "mesh.h"
+#include"mesh.h"
+#include"material.h"
+#include"model.h"
 #include"resource_manager.h"
 #include"shader_source.h"
 
@@ -93,21 +95,21 @@ void Core::init() {
     ResourceManager::AddMaterial("white_material", new MixMaterial(ResourceManager::GetShader("Blinn_Phongshader"),
         ResourceManager::GetTexture("white"), ResourceManager::GetTexture("white")));
 
-    ResourceManager::LoadMesh("building1", "../media/obj/fangjian1.obj");
+    ResourceManager::LoadModel("building1", "../media/obj/fangjian1.obj");
 //    ResourceManager::LoadMesh("building1_exported", "../media/obj/building1_exported.obj");
-    ResourceManager::LoadMesh("building2", "../media/obj/fangjian2.obj");
-    ResourceManager::LoadMesh("building3", "../media/obj/fangjian3.obj");
-    ResourceManager::LoadMesh("building4", "../media/obj/fangjian4.obj");
+    ResourceManager::LoadModel("building2", "../media/obj/fangjian2.obj");
+    ResourceManager::LoadModel("building3", "../media/obj/fangjian3.obj");
+    ResourceManager::LoadModel("building4", "../media/obj/fangjian4.obj");
 
-    ResourceManager::LoadMesh("tree1", "../media/obj/shu1.obj");
-    ResourceManager::LoadMesh("tree2", "../media/obj/shu2.obj");
-    ResourceManager::LoadMesh("tree3", "../media/obj/shu3.obj");
+    ResourceManager::LoadModel("tree1", "../media/obj/shu1.obj");
+    ResourceManager::LoadModel("tree2", "../media/obj/shu2.obj");
+    ResourceManager::LoadModel("tree3", "../media/obj/shu3.obj");
 
-    ResourceManager::LoadMesh("road1", "../media/obj/dizhuan1.obj");
-    ResourceManager::LoadMesh("road2", "../media/obj/dizhuan2.obj");
-    ResourceManager::LoadMesh("road3", "../media/obj/dizhuan3.obj");
+    ResourceManager::LoadModel("road1", "../media/obj/dizhuan1.obj");
+    ResourceManager::LoadModel("road2", "../media/obj/dizhuan2.obj");
+    ResourceManager::LoadModel("road3", "../media/obj/dizhuan3.obj");
 
-    ResourceManager::LoadMesh("character", "../media/obj/character_walk_01.obj");
+//    ResourceManager::LoadModel("character", "../media/obj/character_walk_01.obj");
 	//只是表明我们做了导出功能
 	//实际上对于这个项目来说，并不需要导出功能
 //	ResourceManager::ExportMesh("building1", "../media/obj/building1_exported.obj");
@@ -439,178 +441,68 @@ void Core::doFrame() {
 }
 
 
-void Core::New(ObjectGroup ObjGroup, Mesh* mesh, MixMaterial* material, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz) {
+GameObject* Core::New(ObjectGroup ObjGroup, Model* model, float posx, float posy, float posz, float rotx, float roty, float rotz, float sx, float sy, float sz) {
     GameObject* obj = _scene->CreateObject(ObjGroup);
-    obj->ApplyMesh(mesh);
-    obj->ApplyMaterial(material);
+    obj->AddModel(model);
     obj->SetPosition(glm::vec3(posx, posy, posz));
     obj->SetRotation(glm::vec3(rotx, roty, rotz));
     obj->SetScale(glm::vec3(sx, sy, sz));
+    return obj;
 }
 void Core::SceneInitialize() {
-    GameObject* obj;
-
     //建筑
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("building1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-0.8f, 0.0f, -1.5f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("building2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.8f, -0.0f, -2.2f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("building3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.1f, 0.0f, 0.0f)); 
-    obj->SetRotation(glm::vec3(0.0f, -4.71f, 0.0f));  
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("building4"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.7f, 0.0f, -0.75f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
+    New(ObjectGroup::Building, ResourceManager::GetModel("building1"), 
+        -0.8f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Building, ResourceManager::GetModel("building2"),
+		0.8f, -0.0f, -2.2f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Building, ResourceManager::GetModel("building3"),
+		0.1f, 0.0f, 0.0f, 0.0f, -4.71f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Building, ResourceManager::GetModel("building4"), 
+		-0.7f, 0.0f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
 	//道路
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.75f, -0.024f, 0.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-0.75f, -0.024f, 0.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.0f, 0.0f, -0.75f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.75f, -0.024f, -0.75f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-0.75f, -0.024f, -0.75f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.0f, 0.0f, -1.5f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.75f, -0.024f, -1.5f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-0.75f, -0.024f, -1.5f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.0f, 0.0f, -2.25f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.75f, -0.024f, -2.25f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-0.75f, -0.024f, -2.25f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.0f, 0.0f, -3.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.75f, -0.024f, -3.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Object);
-    obj->ApplyMesh(ResourceManager::GetMesh("road3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-0.75f, -0.024f, -3.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
+    New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+		0.75f, -0.024f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
+		-0.75f, -0.024f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
+		0.0f, 0.0f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road2"), 
+		0.75f, -0.024f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road2"), 
+		-0.75f, -0.024f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road1"), 
+		0.0f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+		0.75f, -0.024f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road3"), 
+		-0.75f, -0.024f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road1"), 
+		0.0f, 0.0f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road3"), 
+		0.75f, -0.024f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road2"), 
+		-0.75f, -0.024f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road1"), 
+		0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+		0.75f, -0.024f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Object, ResourceManager::GetModel("road3"), 
+		-0.75f, -0.024f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
 	//树木
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("tree1"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(0.6f, 0.0f, -0.4f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("tree2"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(-1.2f, 0.0f, -1.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
-    obj = _scene->CreateObject(ObjectGroup::Building);
-    obj->ApplyMesh(ResourceManager::GetMesh("tree3"));
-    obj->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-    obj->SetPosition(glm::vec3(1.0f, 0.0f, -2.0f));
-    obj->SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
-    obj->SetScale(glm::vec3(0.25f, 0.25f, 0.25f));
+    New(ObjectGroup::Building, ResourceManager::GetModel("tree1"),
+		-0.6f, 0.0f, -0.4f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Building, ResourceManager::GetModel("tree2"), 
+		1.2f, 0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+	New(ObjectGroup::Building, ResourceManager::GetModel("tree3"), 
+		-1.2f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
 
     // 创建人物对象并保存指针
     _character = _scene->CreateObject(ObjectGroup::Player);
-    _character->ApplyMesh(ResourceManager::GetMesh("character"));
-    _character->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
+    //_character->ApplyMesh(ResourceManager::GetMesh("character"));
+    //_character->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
+	//_character->AddModel(ResourceManager::GetModel("character"));
     _character->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
 
     // 初始化建筑物碰撞箱
