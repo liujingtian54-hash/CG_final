@@ -11,6 +11,9 @@
 //TODO：可能加个load的接口给这些资源会比较好
 class ResourceManager {
 public:
+	static void LoadAnimationFrames(const std::string& baseName,
+		const std::string& basePath,
+		int startFrame, int endFrame);
 	static std::map<std::string, Texture2D*> textures;
 	static std::map<std::string, Mesh*> meshes;
 	static std::map<std::string, MixMaterial*> materials;

@@ -8,7 +8,7 @@ bool CollisionDetector::CheckCollision(const BoundingBox& a, const BoundingBox& 
 }
 
 CollisionDetector::BoundingBox CollisionDetector::CalculateBoundingBox(GameObject* obj, float scaleFactor) {
-    if (!obj || !obj->GetModel() || !obj->GetModel()->meshes.empty()) {
+    if (!obj || !obj->GetModel() || obj->GetModel()->meshes.empty()) {
         return BoundingBox();
     }
 

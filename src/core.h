@@ -15,6 +15,20 @@ public:
 	~Core();
 	void init();//do other steps in init
 private:
+	// 动画相关成员
+	std::vector<Model*> _characterAnimations; // 存储所有动画帧模型
+	int _currentAnimationFrame = 0;          // 当前动画帧
+	float _animationTimer = 0.0f;            // 动画计时器
+	float _animationSpeed = 0.1f;            // 动画播放速度（秒/帧）
+	bool _isMoving = false;                   // 是否正在移动
+	bool _animationsLoaded = false;          // 动画是否已加载
+
+	// 动画控制方法
+	void loadCharacterAnimations();
+	void updateAnimation(float deltaTime);
+	void playAnimation();
+	void stopAnimation();
+
 	// 添加碰撞检测相关成员
 	std::vector<CollisionDetector::BoundingBox> _buildingColliders;
 	CollisionDetector::BoundingBox _characterCollider;

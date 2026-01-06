@@ -85,6 +85,7 @@ Model* ResourceManager::LoadModel(const std::string& name, const std::string& fi
     // 调用你的 ObjLoader (假设是静态方法)
     Model* model = ObjLoader::LoadObj(file);
 
+
     if (!model) {
         std::cerr << "ERROR::MESH::LOAD_FAILED: " << file << std::endl;
         return nullptr;
@@ -205,4 +206,20 @@ MixMaterial* ResourceManager::GetMaterial(const std::string& name) {
         return materials[name];
     std::cerr << "[ResourceManager::GetMaterial]WARNING::MATERIAL_NOT_FOUND: " << name << std::endl;
     return nullptr;
+}
+
+// 添加批量加载动画帧的方法
+
+void ResourceManager::LoadAnimationFrames(const std::string& baseName,
+    const std::string& basePath,
+    int startFrame, int endFrame) {
+
+    for (int i = startFrame; i <= endFrame; ++i) {
+        std::string frameNumber = (i < 10 ? "0" : "") + std::to_string(i);
+        std::string modelName = baseName + "_" + frameNumber;
+        std::string filePath = basePath + frameNumber + ".obj";
+
+        // 使用现有的 LoadModel 方法
+        LoadModel(modelName, filePath);
+    }
 }

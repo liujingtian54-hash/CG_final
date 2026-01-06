@@ -1,7 +1,8 @@
 #include<glm/glm.hpp>
 #include<ctime>
 #include <iomanip>
-
+#include <iostream>
+#include <string>
 #include"core.h"
 #include"scene.h"
 #include"game_object.h"
@@ -109,7 +110,7 @@ void Core::init() {
     ResourceManager::LoadModel("road2", "../media/obj/dizhuan2.obj");
     ResourceManager::LoadModel("road3", "../media/obj/dizhuan3.obj");
 
-//    ResourceManager::LoadModel("character", "../media/obj/character_walk_01.obj");
+    ResourceManager::LoadModel("character", "../media/obj/character_walk_01.obj");
 	//只是表明我们做了导出功能
 	//实际上对于这个项目来说，并不需要导出功能
 //	ResourceManager::ExportMesh("building1", "../media/obj/building1_exported.obj");
@@ -131,6 +132,18 @@ void Core::init() {
 	paths[5] = "../media/texture/skyboxrt/back.jpg";
 	skybox[1] = new SkyBox(paths);
 	//scene initialize
+    // 加载角色模型和动画帧
+    ResourceManager::LoadAnimationFrames("character_walk",
+        "../media/obj/character_walk_", 2, 21);
+
+    // 批量加载行走动画帧
+    for (int i = 2; i <= 21; ++i) {
+        std::string frameNum = (i < 10 ? "0" : "") + std::to_string(i);
+        std::string modelName = "character_walk_" + frameNum;
+        std::string filePath = "../media/obj/character_walk_" + frameNum + ".obj";
+        ResourceManager::LoadModel(modelName, filePath);
+    }
+    loadCharacterAnimations();
     SceneInitialize();
 }
 
@@ -206,6 +219,26 @@ void Core::handleInput() {
     if (move_state) {
         glm::vec3 newPosition = _character->GetPosition();
         glm::vec3 moveDelta(0.0f);
+
+        bool wasMoving = _isMoving;
+        _isMoving = false; // 先重置移动状态
+
+        // 检测移动输入
+        if (_input.keyboard.keyStates[GLFW_KEY_W] != GLFW_RELEASE ||
+            _input.keyboard.keyStates[GLFW_KEY_A] != GLFW_RELEASE ||
+            _input.keyboard.keyStates[GLFW_KEY_S] != GLFW_RELEASE ||
+            _input.keyboard.keyStates[GLFW_KEY_D] != GLFW_RELEASE) {
+
+            _isMoving = true;
+        }
+
+        // 更新动画状态
+        if (_isMoving && !wasMoving) {
+            playAnimation();
+        }
+        else if (!_isMoving && wasMoving) {
+            stopAnimation();
+        }
 
         // W - 向前移动
         if (_input.keyboard.keyStates[GLFW_KEY_W] != GLFW_RELEASE) {
@@ -383,7 +416,13 @@ void Core::renderFrame() {
     ImGui::SameLine();
 	ImGui::Text("Current SkyBox: %d", skyboxIndex + 1);
     ImGui::End();
-
+    // 添加动画控制窗口
+    ImGui::Begin("Animation Settings");
+    ImGui::Text("Animation State: %s", _isMoving ? "Walking" : "Idle");
+    ImGui::Text("Current Frame: %d/%d", _currentAnimationFrame,
+        _characterAnimations.size() - 1);
+    ImGui::SliderFloat("Animation Speed", &_animationSpeed, 0.01f, 0.5f);
+    ImGui::End();
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -435,7 +474,8 @@ void Core::doFrame() {
         if (_yaw > 180.0f) _yaw -= 360.0f;
         updateLightDirection(_yaw, _pitch);
     }
-
+    // 更新动画
+    updateAnimation(_deltaTime);
     // 注意：人物位置更新已经在handleInput()中完成
     _scene->Update(_deltaTime);
 }
@@ -502,7 +542,14 @@ void Core::SceneInitialize() {
     _character = _scene->CreateObject(ObjectGroup::Player);
     //_character->ApplyMesh(ResourceManager::GetMesh("character"));
     //_character->ApplyMaterial(ResourceManager::GetMaterial("white_material"));
-	//_character->AddModel(ResourceManager::GetModel("character"));
+    // 初始设置为静止状态模型
+    if (_animationsLoaded && _characterAnimations.size() > 0) {
+        _character->AddModel(_characterAnimations[0]);
+    }
+    else {
+        // 回退到原始加载方式
+        _character->AddModel(ResourceManager::GetModel("character"));
+    }
     _character->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
 
     // 初始化建筑物碰撞箱
@@ -548,4 +595,85 @@ void Core::syncCameraAngles() {
     glm::vec3 characterDegrees = glm::degrees(characterEuler);
     characterDegrees.y = fmod(characterDegrees.y + 180.0f, 360.0f) - 180.0f;
     _characterYaw = characterDegrees.y;
+}
+void Core::loadCharacterAnimations() {
+    if (_animationsLoaded) return;
+
+    _characterAnimations.clear();
+
+    // 加载静止状态（第1帧）
+    Model* idleModel = ResourceManager::GetModel("character");
+    if (idleModel) {
+        _characterAnimations.push_back(idleModel);
+    }
+
+    // 加载行走动画帧（02-21）
+    for (int i = 2; i <= 21; ++i) {
+        std::string frameNum = (i < 10 ? "0" : "") + std::to_string(i);
+        std::string modelName = "character_walk_" + frameNum;
+        std::string filePath = "../media/obj/character_walk_" + frameNum + ".obj";
+
+        Model* walkModel = ResourceManager::GetModel(modelName);
+        if (walkModel) {
+            _characterAnimations.push_back(walkModel);
+        }
+        else {
+            std::cerr << "Warning: Failed to load animation frame: " << modelName << std::endl;
+        }
+    }
+
+    _animationsLoaded = !_characterAnimations.empty();
+    if (_animationsLoaded) {
+        std::cout << "Loaded " << _characterAnimations.size() << " animation frames" << std::endl;
+    }
+    else {
+        std::cerr << "Error: No animation frames loaded!" << std::endl;
+    }
+}
+void Core::updateAnimation(float deltaTime) {
+    if (!_animationsLoaded || _characterAnimations.size() <= 1) return;
+
+    if (_isMoving) {
+        _animationTimer += deltaTime;
+        if (_animationTimer >= _animationSpeed) {
+            _animationTimer = 0.0f;
+            _currentAnimationFrame++;
+
+            if (_currentAnimationFrame >= _characterAnimations.size()) {
+                _currentAnimationFrame = 1; // 从第一个行走帧开始
+            }
+
+            if (_character && _currentAnimationFrame < _characterAnimations.size()) {
+                _character->AddModel(_characterAnimations[_currentAnimationFrame]);
+            }
+        }
+    }
+    else {
+        if (_currentAnimationFrame != 0) {
+            _currentAnimationFrame = 0;
+            _animationTimer = 0.0f;
+
+            if (_character && _characterAnimations.size() > 0) {
+                _character->AddModel(_characterAnimations[0]);
+            }
+        }
+    }
+}
+
+void Core::playAnimation() {
+    _isMoving = true;
+    // 确保从第一个行走帧开始
+    if (_currentAnimationFrame == 0 && _characterAnimations.size() > 1) {
+        _currentAnimationFrame = 1;
+    }
+}
+
+
+void Core::stopAnimation() {
+    _isMoving = false;
+    // 重置到静止帧
+    if (_character && _characterAnimations.size() > 0) {
+        _currentAnimationFrame = 0;
+        _character->AddModel(_characterAnimations[0]);
+    }
 }
