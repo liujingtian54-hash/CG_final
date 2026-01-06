@@ -59,8 +59,8 @@ _scene(nullptr), _light() {
     updateLightDirection(_yaw, _pitch);
 	_light.intensity = 1.0f;
 
-    _characterDistance = 0.3f; // 人物在摄像机前方0.3个单位
-    _characterHeight = 0.25f;   // 人物在摄像机下方0.25个单位
+    _characterDistance = 0.4f; // 人物在摄像机前方0.3个单位
+    _characterHeight = 0.175f;   // 人物在摄像机下方0.25个单位
 	init();
 }
 
@@ -550,7 +550,7 @@ void Core::SceneInitialize() {
         // 回退到原始加载方式
         _character->AddModel(ResourceManager::GetModel("character"));
     }
-    _character->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
+    _character->SetScale(glm::vec3(0.23f, 0.23f, 0.23f));
 
     // 初始化建筑物碰撞箱
     updateBuildingColliders();
