@@ -628,7 +628,7 @@ void Core::loadCharacterAnimations() {
     }
 
     // 加载行走动画帧（02-21）
-    for (int i = 2; i <= 21; ++i) {
+    for (int i = 2; i <= 23; ++i) {
         std::string frameNum = (i < 10 ? "0" : "") + std::to_string(i);
         std::string modelName = "character_walk_" + frameNum;
         std::string filePath = "../media/obj/character_walk_" + frameNum + ".obj";
