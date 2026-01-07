@@ -338,91 +338,111 @@ void Core::renderFrame() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // 人物设置窗口
-    ImGui::Begin("Character Settings");
-    ImGui::SliderFloat("Follow Distance", &_characterDistance, 0.0f, 0.5f);
-    ImGui::SliderFloat("Height Offset", &_characterHeight, -1.0f, 1.0f);
-    ImGui::End();
+    // 统一的控制面板 - 使用英文
+    ImGui::Begin("Control Panel", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-    // 光照设置窗口
-    ImGui::Begin("Light Settings");
+    // 使用折叠栏组织不同类别的设置
+    if (ImGui::CollapsingHeader("Character Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::SliderFloat("Follow Distance", &_characterDistance, 0.0f, 0.5f);
+        ImGui::SliderFloat("Height Offset", &_characterHeight, -1.0f, 1.0f);
 
-    if (!_manuallycontrollight)
-        ImGui::BeginDisabled();
-
-    ImGui::ColorEdit3("Light Color", &_light.color.x);
-    ImGui::SliderFloat("Intensity", &_light.intensity, 0.0f, 5.0f);
-
-    ImGui::Text("Sun Position");
-    bool updated = false;
-    updated |= ImGui::SliderFloat("Yaw", &_yaw, -180.0f, 180.0f);
-    updated |= ImGui::SliderFloat("Pitch", &_pitch, -89.0f, 89.0f);
-
-    if (updated) {
-        updateLightDirection(_yaw, _pitch);
+        ImGui::Separator();
+        ImGui::Text("Animation State: %s", _isMoving ? "Walking" : "Idle");
+        ImGui::Text("Current Frame: %d/%d", _currentAnimationFrame,
+            _characterAnimations.empty() ? 0 : _characterAnimations.size() - 1);
+        ImGui::SliderFloat("Animation Speed", &_animationSpeed, 0.01f, 0.5f);
     }
 
-    if (!_manuallycontrollight)
-        ImGui::EndDisabled();
+    if (ImGui::CollapsingHeader("Light Settings")) {
+        ImGui::ColorEdit3("Light Color", &_light.color.x);
+        ImGui::SliderFloat("Light Intensity", &_light.intensity, 0.0f, 5.0f);
 
-    // 摄像机信息显示（保持在光照设置窗口内）
-    ImGui::Separator();
-    ImGui::Text("=== Camera Information ===");
+        ImGui::Text("Sun Position");
+        bool lightUpdated = false;
+        lightUpdated |= ImGui::SliderFloat("Yaw", &_yaw, -180.0f, 180.0f);
+        lightUpdated |= ImGui::SliderFloat("Pitch", &_pitch, -89.0f, 89.0f);
 
-    // 从四元数转换为欧拉角
-    glm::vec3 euler = glm::eulerAngles(_camera.transform.rotation);
-    // 将弧度转换为角度，并确保角度范围正确
-    glm::vec3 degrees = glm::degrees(euler);
+        if (lightUpdated) {
+            updateLightDirection(_yaw, _pitch);
+        }
 
-    degrees.x = fmod(degrees.x + 180.0f, 360.0f) - 180.0f;
-    degrees.y = fmod(degrees.y + 180.0f, 360.0f) - 180.0f;
-    degrees.z = fmod(degrees.z + 180.0f, 360.0f) - 180.0f;
+        // 光照控制模式切换
+        ImGui::Separator();
+        if (ImGui::Button(_manuallycontrollight ? "Switch to Character Control" : "Switch to Light Control")) {
+            _manuallycontrollight = !_manuallycontrollight;
+            syncCameraAngles();
 
-    // 获取摄像机的前向向量
-    glm::vec3 front = _camera.transform.getFront();
-
-    ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)",
-        _camera.transform.position.x,
-        _camera.transform.position.y,
-        _camera.transform.position.z);
-
-    ImGui::Text("Camera Rotation (degrees):");
-    ImGui::Text("  X(Pitch): %.2f°", degrees.x);
-    ImGui::Text("  Y(Yaw):   %.2f°", degrees.y);
-    ImGui::Text("  Z(Roll):  %.2f°", degrees.z);
-
-    ImGui::Text("Forward Vector: (%.2f, %.2f, %.2f)", front.x, front.y, front.z);
-
-    // 显示控制模式状态
-    ImGui::Separator();
-    ImGui::Text("Control Mode: %s", _manuallycontrollight ? "Light Control" : "Character Control");
-    ImGui::Text("Mouse State: %s",
-        glfwGetInputMode(_window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED ?
-        "Locked" : "Free");
-
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-        1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-    ImGui::End(); // 结束光照设置窗口
-
-	ImGui::Begin("SkyBox Settings");
-	if (ImGui::Button("SkyBox 1")) {
-		skyboxIndex = 0;
-	}
-	ImGui::SameLine();
-    if (ImGui::Button("SkyBox 2")) {
-        skyboxIndex = 1;
+            if (!_manuallycontrollight) {
+                // 切换到角色控制时的光标设置
+                _input.mouse.move.xOld = _input.mouse.move.xNow;
+                _input.mouse.move.yOld = _input.mouse.move.yNow;
+                glfwSetCursorPos(_window, _windowWidth * 0.5f, _windowHeight * 0.5f);
+                _input.mouse.move.xNow = _windowWidth * 0.5f;
+                _input.mouse.move.yNow = _windowHeight * 0.5f;
+                _isFirstMouse = true;
+            }
+        }
+        ImGui::Text("Current Mode: %s", _manuallycontrollight ? "Light Control" : "Character Control");
     }
-    ImGui::SameLine();
-	ImGui::Text("Current SkyBox: %d", skyboxIndex + 1);
-    ImGui::End();
-    // 添加动画控制窗口
-    ImGui::Begin("Animation Settings");
-    ImGui::Text("Animation State: %s", _isMoving ? "Walking" : "Idle");
-    ImGui::Text("Current Frame: %d/%d", _currentAnimationFrame,
-        _characterAnimations.size() - 1);
-    ImGui::SliderFloat("Animation Speed", &_animationSpeed, 0.01f, 0.5f);
-    ImGui::End();
+
+    if (ImGui::CollapsingHeader("Skybox Settings")) {
+        ImGui::Text("Select Skybox:");
+        if (ImGui::Button("Skybox 1")) {
+            skyboxIndex = 0;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Skybox 2")) {
+            skyboxIndex = 1;
+        }
+        ImGui::Text("Current Skybox: %d", skyboxIndex + 1);
+    }
+
+    if (ImGui::CollapsingHeader("System Info")) {
+        // 摄像机信息
+        glm::vec3 euler = glm::eulerAngles(_camera.transform.rotation);
+        glm::vec3 degrees = glm::degrees(euler);
+        degrees.x = fmod(degrees.x + 180.0f, 360.0f) - 180.0f;
+        degrees.y = fmod(degrees.y + 180.0f, 360.0f) - 180.0f;
+        degrees.z = fmod(degrees.z + 180.0f, 360.0f) - 180.0f;
+
+        glm::vec3 front = _camera.transform.getFront();
+
+        ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)",
+            _camera.transform.position.x,
+            _camera.transform.position.y,
+            _camera.transform.position.z);
+
+        ImGui::Text("Camera Rotation:");
+        ImGui::Text("  X(Pitch): %.2f°", degrees.x);
+        ImGui::Text("  Y(Yaw): %.2f°", degrees.y);
+        ImGui::Text("  Z(Roll): %.2f°", degrees.z);
+
+        ImGui::Text("Forward Vector: (%.2f, %.2f, %.2f)", front.x, front.y, front.z);
+
+        ImGui::Separator();
+        ImGui::Text("Mouse State: %s",
+            glfwGetInputMode(_window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED ?
+            "Locked" : "Free");
+    }
+
+    if (ImGui::CollapsingHeader("Performance")) {
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+        ImGui::Text("Scene Objects: %zu", _scene->GetObjectCount());
+    }
+
+    if (ImGui::CollapsingHeader("Tools")) {
+        // 截图功能
+        if (ImGui::Button("Take Screenshot")) {
+            _ShouldSaveScreenshot = true;
+        }
+        ImGui::SameLine();
+        ImGui::Text(_ShouldSaveScreenshot ? "Preparing screenshot..." : "");
+
+    }
+
+    ImGui::End(); // 结束统一的控制面板
+
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
