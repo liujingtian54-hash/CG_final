@@ -134,7 +134,7 @@ void Core::init() {
 	//scene initialize
     // 加载角色模型和动画帧
     ResourceManager::LoadAnimationFrames("character_walk",
-        "../media/obj/character_walk_", 2, 21);
+        "../media/obj/character_walk_", 1, 23);
 
     // 批量加载行走动画帧
     for (int i = 2; i <= 21; ++i) {
@@ -571,6 +571,7 @@ void Core::SceneInitialize() {
         _character->AddModel(ResourceManager::GetModel("character"));
     }
     _character->SetScale(glm::vec3(0.23f, 0.23f, 0.23f));
+
 
     // 初始化建筑物碰撞箱
     updateBuildingColliders();
