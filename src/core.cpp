@@ -1,5 +1,4 @@
-#include<glm/glm.hpp>
-#include<ctime>
+#include <ctime>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -13,10 +12,15 @@
 #include"shader_source.h"
 
 #include"base/skybox.h"
+#include"base/framebuffer.h"
+#include"base/texture2d.h"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <glm/glm.hpp>
+#include "base/gl_utility.h"
+
 
 void Core::updateBuildingColliders() {
     _buildingColliders.clear();
@@ -48,7 +52,40 @@ bool Core::checkCharacterCollision(const glm::vec3& newPosition) {
     return false; // 无碰撞
 }
 
+void RenderQuad() {
+    static unsigned int quadVAO = 0;
+    static unsigned int quadVBO;
 
+    if (quadVAO == 0) {
+        // 顶点数据：位置 (x, y) + 纹理坐标 (u, v)
+        // 使用 Triangle Strip 绘制，顺序是：左上、左下、右上、右下
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // 左上
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // 左下
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f, // 右上
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // 右下
+        };
+
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+
+    // 绘制
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
 
 Core::Core(const Options& options) : Application(options), 
 _camera(glm::radians(60.0f), 1.0f * _windowWidth / _windowHeight, 0.1f, 10000.0f), 
@@ -58,14 +95,21 @@ _scene(nullptr), _light() {
     //_light.transform.rotation = glm::vec3(-1.0f, -1.0f, -1.0f);
     updateLightDirection(_yaw, _pitch);
 	_light.intensity = 1.0f;
-
+    near = 0.3f;
+    far = 10.0f;
+    left = -1.0f;
+    right = 1.0f;
+    bottom = -1.0f;
+    top = 1.0f;
+//	_lightSpaceMatrix = glm::ortho(left, right, bottom, top, near, far) 
+//        * glm::lookAt(-_light.transform.getFront() * 5.0f, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     _characterDistance = 0.4f; // 人物在摄像机前方0.3个单位
     _characterHeight = 0.175f;   // 人物在摄像机下方0.25个单位
 	init();
 }
 
 Core::~Core() {
-	delete _scene;
+    delete _scene; delete _shadowFBO; delete _shadowMap;
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -90,6 +134,18 @@ void Core::init() {
     ResourceManager::LoadShader("Blinn_Phongshader",
         ShaderSource::Blinn_PhongVertexShader,
 		ShaderSource::Blinn_PhongFragmentShader);
+    ResourceManager::LoadShader("DepthShader",
+        ShaderSource::depthVertexShader,
+		ShaderSource::depthFragmentShader);
+    ResourceManager::LoadShader("ShadowPoweredBlinnPhongShader",
+		ShaderSource::ShadowPoweredBlinnPhongVertexShader, 
+		ShaderSource::ShadowPoweredBlinnPhongFragmentShader);
+    ResourceManager::LoadShader("DebugQuadShader",
+        ShaderSource::DebugQuadVertexShader,
+		ShaderSource::DebugQuadFragmentShader);
+    ResourceManager::LoadShader("BloomShader",
+        ShaderSource::bloomVertexShader,
+		ShaderSource::bloomFragmentShader);
 	//顺序应该是先加载贴图再加材质，然后才能导入mesh
     ResourceManager::LoadTexture("white", "../media/texture/white.png");
 
@@ -143,6 +199,24 @@ void Core::init() {
         std::string filePath = "../media/obj/character_walk_" + frameNum + ".obj";
         ResourceManager::LoadModel(modelName, filePath);
     }
+
+	// shadow map initialize
+    _shadowMap = new Texture2D(GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	// 其他参数已经默认设置了，这里要把边界颜色设置为白色以避免阴影范围外出现重复纹理
+	glBindTexture(GL_TEXTURE_2D, _shadowMap->getHandle());
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+	_shadowFBO = new Framebuffer();
+	_shadowFBO->bind();
+	_shadowFBO->attachTexture2D(*_shadowMap, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
+	GLenum status = _shadowFBO->checkStatus();
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Shadow Framebuffer not complete: "
+                  << _shadowFBO->getDiagnostic(status) << std::endl;
+	}
+    _shadowFBO->unbind();
     loadCharacterAnimations();
     SceneInitialize();
 }
@@ -353,6 +427,14 @@ void Core::renderFrame() {
         ImGui::SliderFloat("Animation Speed", &_animationSpeed, 0.01f, 0.5f);
     }
 
+    if (ImGui::CollapsingHeader("Shader Settings")) {
+		ImGui::Text("Toggle Shadow Mapping:");
+        if (ImGui::Button(activateShadow ? "Disable Shadows" : "Enable Shadows")) {
+            activateShadow = !activateShadow;
+        }
+		ImGui::Text("Current Shadow Mapping: %s", activateShadow ? "Enabled" : "Disabled");
+    }
+
     if (ImGui::CollapsingHeader("Light Settings")) {
         ImGui::ColorEdit3("Light Color", &_light.color.x);
         ImGui::SliderFloat("Light Intensity", &_light.intensity, 0.0f, 5.0f);
@@ -443,31 +525,79 @@ void Core::renderFrame() {
 
     ImGui::End(); // 结束统一的控制面板
 
+    doFrame();
+
     glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
     render();
-    doFrame();
 }
 
 void Core::render() {
 	skybox[skyboxIndex]->draw(_camera.getProjectionMatrix(), glm::mat4(glm::mat3(_camera.getViewMatrix())));
-    GLSLProgram* s = ResourceManager::GetShader("Blinn_Phongshader");
+    GLSLProgram* s = nullptr;
+    if (activateShadow) {
+        // 开始绘制阴影部分
+        _shadowFBO->bind();
+        GLSLProgram* dS = ResourceManager::GetShader("DepthShader");
+        dS->use();
+        // 阴影FBO显然不读颜色
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glClear(GL_DEPTH_BUFFER_BIT);
+        glCullFace(GL_FRONT);
+        for (const auto& [_,obj] : _scene->GetAllObjects()) {
+            glm::mat4 modelMatrix = obj->GetTransform().getLocalMatrix();
+            dS->setUniformMat4("model", modelMatrix);
+            dS->setUniformMat4("lightSpaceMatrix", _lightSpaceMatrix);
+			for(const auto& mesh : obj->GetModel()->meshes) {
+                mesh.mesh->Draw();
+			}
+        }
+
+        _shadowFBO->unbind();
+        _shadowMap->bind(3);
+        // 但是绘制完了要记得改回来
+
+        glCullFace(GL_BACK);
+        glDrawBuffer(GL_BACK);
+        glReadBuffer(GL_BACK);
+        dS->unuse();
+        glViewport(0, 0, _windowWidth, _windowHeight);
+		s = ResourceManager::GetShader("ShadowPoweredBlinnPhongShader");
+    }
+    else
+        s = ResourceManager::GetShader("Blinn_Phongshader");
+	// 调用DebugQuadShader查看深度图
+    // 测试结果来看：完全没画上
+    //glViewport(0, 0, 200, 200);
+	//GLSLProgram* debugS = ResourceManager::GetShader("DebugQuadShader");
+	//debugS->use();
+	//debugS->setUniformInt("debugTexture", 3);
+    //RenderQuad();
+	//debugS->unuse();
+    //glViewport(0, 0, _windowWidth, _windowHeight);
+
+    // 开始绘制正常部分
     s->use();
     s->setUniformMat4("projection", _camera.getProjectionMatrix());
     s->setUniformMat4("view", _camera.getViewMatrix());
+    if (activateShadow) {
+        s->setUniformMat4("lightSpaceMatrix", _lightSpaceMatrix);
+		s->setUniformInt("shadowMap", 3);
+    }
 	s->setUniformVec3("viewPos", _camera.transform.position);
-    glm::quat rot = _light.transform.rotation;
-    glm::vec3 direction = glm::vec3(rot.x, rot.y, rot.z);
-    s->setUniformVec3("light.direction", direction);
+//    glm::quat rot = _light.transform.rotation;
+//    glm::vec3 direction = glm::vec3(rot.x, rot.y, rot.z);
+    s->setUniformVec3("light.direction", _light.transform.getFront());
 	s->setUniformVec3("light.Ambientcolor", glm::vec3(0.2f,0.2f,0.25f));
     s->setUniformVec3("light.Diffusecolor", _light.color);
 	s->setUniformVec3("light.Specularcolor", glm::vec3(1.0f, 1.0f, 1.0f));
     s->setUniformFloat("light.intensity", _light.intensity);
 
     _scene->Render();
-
     if (_ShouldSaveScreenshot) {
         // 生成带时间戳的文件名：screenshot_20231027_123055.png
         std::time_t t = std::time(nullptr);
@@ -494,10 +624,15 @@ void Core::doFrame() {
         if (_yaw > 180.0f) _yaw -= 360.0f;
         updateLightDirection(_yaw, _pitch);
     }
+
+    _lightSpaceMatrix = glm::ortho(left, right, bottom, top, near, far)
+        * glm::lookAt(glm::vec3(0.0f) -_light.transform.getFront() * 3.0f, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     // 更新动画
     updateAnimation(_deltaTime);
     // 注意：人物位置更新已经在handleInput()中完成
     _scene->Update(_deltaTime);
+
+	UpdateCharacterPosition();
 }
 
 

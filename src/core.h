@@ -5,6 +5,7 @@
 #include"base/camera.h"
 #include"base/light.h"
 #include"base/skybox.h"
+#include"base/framebuffer.h"
 #include"scene.h"
 #include"model.h"
 #include "collision_detector.h"
@@ -82,11 +83,7 @@ private:
 	float _yaw = -90.0f;
 	float _pitch = -45.0f;
 	void updateLightDirection(float yaw, float pitch) {
-		glm::vec3 direction;
-		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-		direction.y = sin(glm::radians(pitch));
-		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-		_light.transform.rotation = glm::normalize(direction);
+		_light.transform.rotation = glm::quat(glm::vec3(glm::radians(pitch),glm::radians(yaw),0.0f));
 	}
 
 	// 新增：更新摄像机旋转
@@ -101,4 +98,11 @@ private:
 		_character->SetRotation(rotation);
 	}
 
+	// 新增：处理阴影效果用
+	Framebuffer* _shadowFBO = nullptr;
+	Texture2D* _shadowMap = nullptr;
+	const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+	float near, far, top, bottom, left, right;
+	glm::mat4 _lightSpaceMatrix;
+	bool activateShadow = true;
 };
