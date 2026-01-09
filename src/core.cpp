@@ -510,53 +510,73 @@ GameObject* Core::New(ObjectGroup ObjGroup, Model* model, float posx, float posy
     return obj;
 }
 void Core::SceneInitialize() {
+
+    //  创建立方体和棱台
+    Mesh* cubeMesh = ResourceManager::LoadCube("my_cube", 0.5f); // 边长为0.5的立方体
+    Mesh* coneMesh = ResourceManager::LoadCone("my_cone", 0.3f, 0.8f, 32); // 半径0.3，高度0.8，32个分段
+
+    // 使用默认的白色材质
+    MixMaterial* whiteMaterial = ResourceManager::GetMaterial("white_material");
+
+    // 创建立方体模型并添加到场景
+    Model* cubeModel = new Model(CollisionDetector());
+    cubeModel->AddMesh(cubeMesh, whiteMaterial);
+
+    // 创建圆锥模型并添加到场景
+    Model* coneModel = new Model(CollisionDetector());
+    coneModel->AddMesh(coneMesh, whiteMaterial);
+
+    // 将几何体添加到场景中
+    New(ObjectGroup::Object, cubeModel,-1.5f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f,1.0f, 1.0f, 1.0f);   
+    New(ObjectGroup::Object, coneModel, -1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+
     //建筑
-    New(ObjectGroup::Building, ResourceManager::GetModel("building1"), 
+    New(ObjectGroup::Building, ResourceManager::GetModel("building1"),
         -0.8f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
     New(ObjectGroup::Building, ResourceManager::GetModel("building2"),
-		0.8f, -0.0f, -2.2f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Building, ResourceManager::GetModel("building3"),
-		0.1f, 0.0f, 0.0f, 0.0f, -4.71f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Building, ResourceManager::GetModel("building4"), 
-		-0.7f, 0.0f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	//道路
+        0.8f, -0.0f, -2.2f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Building, ResourceManager::GetModel("building3"),
+        0.1f, 0.0f, 0.0f, 0.0f, -4.71f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Building, ResourceManager::GetModel("building4"),
+        0.6f, 0.0f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    //道路
     New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
-		0.75f, -0.024f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
-		-0.75f, -0.024f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+        0.75f, -0.024f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
+        -0.75f, -0.024f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
     New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
-		0.0f, 0.0f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road2"), 
-		0.75f, -0.024f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road2"), 
-		-0.75f, -0.024f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road1"), 
-		0.0f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
-		0.75f, -0.024f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road3"), 
-		-0.75f, -0.024f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road1"), 
-		0.0f, 0.0f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road3"), 
-		0.75f, -0.024f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road2"), 
-		-0.75f, -0.024f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road1"), 
-		0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
-		0.75f, -0.024f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Object, ResourceManager::GetModel("road3"), 
-		-0.75f, -0.024f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	//树木
+        0.0f, 0.0f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+        0.75f, -0.024f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
+        -0.75f, -0.024f, -0.75f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
+        0.0f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+        0.75f, -0.024f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
+        -0.75f, -0.024f, -1.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
+        0.0f, 0.0f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
+        0.75f, -0.024f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+        -0.75f, -0.024f, -2.25f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road1"),
+        0.0f, 0.0f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road2"),
+        0.75f, -0.024f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Object, ResourceManager::GetModel("road3"),
+        -0.75f, -0.024f, -3.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    //树木
     New(ObjectGroup::Building, ResourceManager::GetModel("tree1"),
-		-0.6f, 0.0f, -0.4f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Building, ResourceManager::GetModel("tree2"), 
-		1.2f, 0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
-	New(ObjectGroup::Building, ResourceManager::GetModel("tree3"), 
-		-1.2f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+        0.8f, 0.0f, -0.3f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Building, ResourceManager::GetModel("tree2"),
+        0.0f, 0.0f, -1.8f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
+    New(ObjectGroup::Building, ResourceManager::GetModel("tree3"),
+        -0.5f, 0.0f, -1.2f, 0.0f, 0.0f, 0.0f, 0.25f, 0.25f, 0.25f);
 
     // 创建人物对象并保存指针
     _character = _scene->CreateObject(ObjectGroup::Player);
