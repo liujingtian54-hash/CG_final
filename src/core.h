@@ -105,4 +105,7 @@ private:
 	float near, far, top, bottom, left, right;
 	glm::mat4 _lightSpaceMatrix;
 	bool activateShadow = true;
+
+	//µ¼³ö
+	void exportGeneratedGeometry();
 };

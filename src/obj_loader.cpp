@@ -108,6 +108,124 @@ void LoadMtlLib(const std::string& directory, const std::string& filename, const
 	file.close();
 }
 
+bool ObjLoader::ExportGeometry(const std::string& filename,
+	const std::vector<Vertex>& vertices,
+	const std::vector<unsigned int>& indices,
+	const std::string& materialName) {
+	std::ofstream file(filename);
+	if (!file.is_open()) {
+		std::cerr << "Failed to open file for writing: " << filename << std::endl;
+		return false;
+	}
+
+	// 写入OBJ文件头
+	file << "# Exported Geometry\n";
+	file << "mtllib " << materialName << ".mtl\n";
+
+	// 写入顶点位置
+	for (const auto& vertex : vertices) {
+		file << "v " << vertex.position.x << " "
+			<< vertex.position.y << " "
+			<< vertex.position.z << "\n";
+	}
+
+	// 写入纹理坐标
+	for (const auto& vertex : vertices) {
+		file << "vt " << vertex.texCoord.x << " "
+			<< vertex.texCoord.y << "\n";
+	}
+
+	// 写入法线
+	for (const auto& vertex : vertices) {
+		file << "vn " << vertex.normal.x << " "
+			<< vertex.normal.y << " "
+			<< vertex.normal.z << "\n";
+	}
+
+	// 写入面
+	for (size_t i = 0; i < indices.size(); i += 3) {
+		if (i + 2 < indices.size()) {
+			unsigned int idx0 = indices[i] + 1;
+			unsigned int idx1 = indices[i + 1] + 1;
+			unsigned int idx2 = indices[i + 2] + 1;
+
+			file << "f " << idx0 << "/" << idx0 << "/" << idx0 << " "
+				<< idx1 << "/" << idx1 << "/" << idx1 << " "
+				<< idx2 << "/" << idx2 << "/" << idx2 << "\n";
+		}
+	}
+
+	file.close();
+
+	// 创建对应的MTL文件
+	std::string mtlFilename = filename.substr(0, filename.find_last_of('.')) + ".mtl";
+	std::ofstream mtlFile(mtlFilename);
+
+	if (!mtlFile.is_open()) {
+		std::cerr << "Failed to create MTL file: " << mtlFilename << std::endl;
+		return false;
+	}
+
+	mtlFile << "# Exported Material\n";
+	mtlFile << "newmtl " << materialName << "\n";
+	mtlFile << "Ka 0.2 0.2 0.2\n";  // 环境光
+	mtlFile << "Kd 0.8 0.8 0.8\n";  // 漫反射
+	mtlFile << "Ks 0.5 0.5 0.5\n";  // 镜面反射
+	mtlFile << "Ns 32.0\n";         // 高光指数
+
+	mtlFile.close();
+
+	std::cout << "Geometry exported successfully: " << filename << std::endl;
+	return true;
+}
+
+bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& material_name, const std::string& path) {
+	std::ofstream file(path);
+	if (!file.is_open()) {
+		std::cerr << "Failed to open file for writing: " << path << std::endl;
+		return false;
+	}
+	file << "# Exported OBJ file: " << mesh_name << "\n";
+	file << "mtllib " << material_name << ".mtl\n";
+	Mesh* mesh = ResourceManager::GetMesh(mesh_name);
+	for (auto& iter : mesh->GetVertices()) {
+		file << "v " << iter.position.x << " " << iter.position.y << " " << iter.position.z << "\n";
+	}
+	for (auto& iter : mesh->GetVertices()) {
+		file << "vn " << iter.normal.x << " " << iter.normal.y << " " << iter.normal.z << "\n";
+	}
+	for (auto& iter : mesh->GetVertices()) {
+		file << "vt " << iter.texCoord.x << " " << iter.texCoord.y << "\n";
+	}
+	for (size_t i = 0; i < mesh->GetIndices().size(); i += 3) {
+		unsigned int idx0 = mesh->GetIndices()[i] + 1;
+		unsigned int idx1 = mesh->GetIndices()[i + 1] + 1;
+		unsigned int idx2 = mesh->GetIndices()[i + 2] + 1;
+		file << "f " << idx0 << "/" << idx0 << "/" << idx0 << " "
+			<< idx1 << "/" << idx1 << "/" << idx1 << " "
+			<< idx2 << "/" << idx2 << "/" << idx2 << "\n";
+	}
+
+	file.close();
+
+	std::ofstream mtlFile(path.substr(0, path.find_last_of(".") + 1) + "mtl");
+	if (!mtlFile.is_open()) {
+		std::cerr << "Failed to open MTL file for writing: " << path << std::endl;
+		return false;
+	}
+	MixMaterial* material = ResourceManager::GetMaterial(material_name);
+	mtlFile << "# Exported MTL file: " << material_name << "\n";
+	mtlFile << "newmtl " << material_name << "\n";
+	mtlFile << "Ka " << 0.0000 << " " << 0.0000 << " " << 0.0000 << "\n";
+	mtlFile << "Kd " << material->kds1[0] << " " << material->kds1[1] << " " << material->kds1[2] << "\n";
+	mtlFile << "Ks " << material->ks[0] << " " << material->ks[1] << " " << material->ks[2] << "\n";
+	mtlFile.close();
+
+	return true;
+}
+
+
+
 Model* ObjLoader::LoadObj(const std::string& path) {
 	std::vector<glm::vec3> temp_positions;
 	std::vector<glm::vec2> temp_texCoords;
@@ -215,49 +333,4 @@ Model* ObjLoader::LoadObj(const std::string& path) {
 	FlushMesh();
 	file.close();
 	return model;
-}
-
-bool ObjLoader::ExportObj(const std::string& mesh_name, const std::string& material_name, const std::string& path) {
-	std::ofstream file(path);
-	if (!file.is_open()) {
-		std::cerr << "Failed to open file for writing: " << path << std::endl;
-		return false;
-	}
-	file << "# Exported OBJ file: " << mesh_name << "\n";
-	file << "mtllib " << material_name << ".mtl\n";
-	Mesh* mesh = ResourceManager::GetMesh(mesh_name);
-	for(auto& iter : mesh->GetVertices()) {
-		file << "v " << iter.position.x << " " << iter.position.y << " " << iter.position.z << "\n";
-	}
-	for (auto& iter : mesh->GetVertices()) {
-		file << "vn " << iter.normal.x << " " << iter.normal.y << " " << iter.normal.z << "\n";
-	}
-	for (auto& iter : mesh->GetVertices()) {
-		file << "vt " << iter.texCoord.x << " " << iter.texCoord.y << "\n";
-	}
-	for (size_t i = 0; i < mesh->GetIndices().size(); i += 3) {
-		unsigned int idx0 = mesh->GetIndices()[i] + 1;
-		unsigned int idx1 = mesh->GetIndices()[i + 1] + 1;
-		unsigned int idx2 = mesh->GetIndices()[i + 2] + 1;
-		file << "f " << idx0 << "/" << idx0 << "/" << idx0 << " "
-			<< idx1 << "/" << idx1 << "/" << idx1 << " "
-			<< idx2 << "/" << idx2 << "/" << idx2 << "\n";
-	}
-
-	file.close();
-
-	std::ofstream mtlFile(path.substr(0, path.find_last_of(".") + 1) + "mtl");
-	if (!mtlFile.is_open()) {
-		std::cerr << "Failed to open MTL file for writing: " << path << std::endl;
-		return false;
-	}
-	MixMaterial* material = ResourceManager::GetMaterial(material_name);
-	mtlFile << "# Exported MTL file: " << material_name << "\n";
-	mtlFile << "newmtl " << material_name << "\n";
-	mtlFile << "Ka " << 0.0000 << " " << 0.0000 << " " << 0.0000 << "\n";
-	mtlFile << "Kd " << material->kds1[0] << " " << material->kds1[1] << " " << material->kds1[2] << "\n";
-	mtlFile << "Ks " << material->ks[0] << " " << material->ks[1] << " " << material->ks[2] << "\n";
-	mtlFile.close();
-
-	return true;
 }

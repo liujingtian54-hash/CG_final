@@ -10,4 +10,7 @@ class ObjLoader {
 public:
 	static Model* LoadObj(const std::string& path);
 	static bool ExportObj(const std::string& mesh_name, const std::string& material_name, const std::string& path);
+
+	static bool ExportGeometry(const std::string& filename, const std::vector<Vertex>& vertices,
+		const std::vector<unsigned int>& indices, const std::string& materialName = "default");
 };

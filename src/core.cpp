@@ -10,6 +10,8 @@
 #include"model.h"
 #include"resource_manager.h"
 #include"shader_source.h"
+#include "obj_loader.h"
+#include "geometry_generator.h"
 
 #include"base/skybox.h"
 #include"base/framebuffer.h"
@@ -271,6 +273,17 @@ void Core::handleInput() {
 		key_state = true;
     }
 
+    static bool ePressed = false;
+    if (_input.keyboard.keyStates[GLFW_KEY_E] != GLFW_RELEASE) {
+        if (!ePressed) {
+            exportGeneratedGeometry();
+            ePressed = true;
+        }
+    }
+    else {
+        ePressed = false;
+    }
+
     if (_input.keyboard.keyStates[GLFW_KEY_P] != GLFW_RELEASE) {
         if (!pPressed) {
 			_ShouldSaveScreenshot = true;
@@ -433,6 +446,8 @@ void Core::renderFrame() {
             activateShadow = !activateShadow;
         }
 		ImGui::Text("Current Shadow Mapping: %s", activateShadow ? "Enabled" : "Disabled");
+
+
     }
 
     if (ImGui::CollapsingHeader("Light Settings")) {
@@ -521,9 +536,18 @@ void Core::renderFrame() {
         ImGui::SameLine();
         ImGui::Text(_ShouldSaveScreenshot ? "Preparing screenshot..." : "");
 
+        ImGui::Separator(); // 添加分隔线
+
+        // 导出几何体功能
+        ImGui::Text("Geometry Export:");
+        if (ImGui::Button("Export Generated Geometries")) {
+            exportGeneratedGeometry();
+        }
+        ImGui::SameLine();
+        ImGui::Text("(Press 'E' key)");
     }
 
-    ImGui::End(); // 结束统一的控制面板
+    ImGui::End(); // 结束
 
     doFrame();
 
@@ -599,7 +623,7 @@ void Core::render() {
 
     _scene->Render();
     if (_ShouldSaveScreenshot) {
-        // 生成带时间戳的文件名：screenshot_20231027_123055.png
+        // 生成带时间戳的文件名：screenshot_20251227_123055.png
         std::time_t t = std::time(nullptr);
         std::tm tm = *std::localtime(&t);
 
@@ -607,7 +631,7 @@ void Core::render() {
         oss << "screenshot_" << std::put_time(&tm, "%Y%m%d_%H%M%S") << ".png";
 
         saveScreenshot(oss.str());
-    }
+    } 
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -852,4 +876,20 @@ void Core::stopAnimation() {
         _currentAnimationFrame = 0;
         _character->AddModel(_characterAnimations[0]);
     }
+}
+
+void Core::exportGeneratedGeometry() {
+    // 导出立方体
+    std::vector<Vertex> cubeVertices;
+    std::vector<unsigned int> cubeIndices;
+    GeometryGenerator::CreateCube(cubeVertices, cubeIndices, 0.5f);
+    ObjLoader::ExportGeometry("exported_cube.obj", cubeVertices, cubeIndices, "cube_material");
+
+    // 导出圆锥
+    std::vector<Vertex> coneVertices;
+    std::vector<unsigned int> coneIndices;
+    GeometryGenerator::CreateCone(coneVertices, coneIndices, 0.3f, 0.8f, 32);
+    ObjLoader::ExportGeometry("exported_cone.obj", coneVertices, coneIndices, "cone_material");
+
+    std::cout << "All geometries exported successfully!" << std::endl;
 }
