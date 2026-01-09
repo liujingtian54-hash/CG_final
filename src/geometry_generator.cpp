@@ -364,7 +364,8 @@ void GeometryGenerator::CreatePrism(std::vector<Vertex>& vertices, std::vector<u
     }
 }
 
-void GeometryGenerator::CreateFrustum(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, int sides, float bottomRadius, float topRadius, float height) {
+void GeometryGenerator::CreateFrustum(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices,
+    int sides, float bottomRadius, float topRadius, float height) {
     vertices.clear();
     indices.clear();
 
@@ -372,7 +373,7 @@ void GeometryGenerator::CreateFrustum(std::vector<Vertex>& vertices, std::vector
 
     float halfHeight = height * 0.5f;
 
-    // 顶部圆盘中心
+    // 顶部和底部的中心点
     Vertex topCenter = {};
     topCenter.position = glm::vec3(0.0f, halfHeight, 0.0f);
     topCenter.normal = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -380,7 +381,6 @@ void GeometryGenerator::CreateFrustum(std::vector<Vertex>& vertices, std::vector
     vertices.push_back(topCenter);
     unsigned int topCenterIndex = 0;
 
-    // 底部圆盘中心
     Vertex bottomCenter = {};
     bottomCenter.position = glm::vec3(0.0f, -halfHeight, 0.0f);
     bottomCenter.normal = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -388,79 +388,79 @@ void GeometryGenerator::CreateFrustum(std::vector<Vertex>& vertices, std::vector
     vertices.push_back(bottomCenter);
     unsigned int bottomCenterIndex = 1;
 
-    // 生成顶部和底部圆盘的顶点
-    std::vector<unsigned int> topRing, bottomRing, sideTopRing, sideBottomRing;
+    // 为顶部和底部圆环创建顶点
+    std::vector<unsigned int> topRing, bottomRing;
 
     for (int i = 0; i <= sides; ++i) {
         float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(sides);
 
-        // 顶部圆盘顶点
+        // 顶部圆环顶点
         float topX = topRadius * cos(theta);
         float topZ = topRadius * sin(theta);
         Vertex topVertex = {};
         topVertex.position = glm::vec3(topX, halfHeight, topZ);
         topVertex.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-        topVertex.texCoord = glm::vec2(
-            0.5f + 0.5f * cos(theta) * (topRadius / bottomRadius),
-            0.5f + 0.5f * sin(theta) * (topRadius / bottomRadius)
-        );
+        topVertex.texCoord = glm::vec2(0.5f + 0.5f * cos(theta), 0.5f + 0.5f * sin(theta));
         vertices.push_back(topVertex);
         topRing.push_back(static_cast<unsigned int>(vertices.size() - 1));
 
-        // 底部圆盘顶点
+        // 底部圆环顶点  
         float bottomX = bottomRadius * cos(theta);
         float bottomZ = bottomRadius * sin(theta);
         Vertex bottomVertex = {};
         bottomVertex.position = glm::vec3(bottomX, -halfHeight, bottomZ);
         bottomVertex.normal = glm::vec3(0.0f, -1.0f, 0.0f);
-        bottomVertex.texCoord = glm::vec2(
-            0.5f + 0.5f * cos(theta),
-            0.5f + 0.5f * sin(theta)
-        );
+        bottomVertex.texCoord = glm::vec2(0.5f + 0.5f * cos(theta), 0.5f + 0.5f * sin(theta));
         vertices.push_back(bottomVertex);
         bottomRing.push_back(static_cast<unsigned int>(vertices.size() - 1));
+    }
 
-        // 侧面顶点
-        Vertex sideTop = {}, sideBottom = {};
+    // 为侧面创建顶点（每个侧面只需要一对顶点）
+    std::vector<unsigned int> sideTopRing, sideBottomRing;
+
+    for (int i = 0; i <= sides; ++i) {
+        float theta = 2.0f * glm::pi<float>() * static_cast<float>(i) / static_cast<float>(sides);
+
+        // 计算当前侧面的法线方向（指向外侧）
+        float faceTheta = 2.0f * glm::pi<float>() * (static_cast<float>(i) + 0.5f) / static_cast<float>(sides);
+        glm::vec3 faceNormal = glm::normalize(glm::vec3(cos(faceTheta), 0.0f, sin(faceTheta)));
+
+        // 顶部侧面顶点
+        float topX = topRadius * cos(theta);
+        float topZ = topRadius * sin(theta);
+        Vertex sideTop = {};
         sideTop.position = glm::vec3(topX, halfHeight, topZ);
-        sideBottom.position = glm::vec3(bottomX, -halfHeight, bottomZ);
-
-        // 计算侧面法向量（倾斜面的法向量）
-        glm::vec3 edge = sideBottom.position - sideTop.position;
-        glm::vec3 horizontal = glm::vec3(-sin(theta), 0.0f, cos(theta));
-        glm::vec3 normal = glm::normalize(glm::cross(edge, horizontal));
-        sideTop.normal = normal;
-        sideBottom.normal = normal;
-
+        sideTop.normal = faceNormal;
         sideTop.texCoord = glm::vec2(static_cast<float>(i) / static_cast<float>(sides), 1.0f);
-        sideBottom.texCoord = glm::vec2(static_cast<float>(i) / static_cast<float>(sides), 0.0f);
-
         vertices.push_back(sideTop);
+        sideTopRing.push_back(static_cast<unsigned int>(vertices.size() - 1));
+
+        // 底部侧面顶点
+        float bottomX = bottomRadius * cos(theta);
+        float bottomZ = bottomRadius * sin(theta);
+        Vertex sideBottom = {};
+        sideBottom.position = glm::vec3(bottomX, -halfHeight, bottomZ);
+        sideBottom.normal = faceNormal;
+        sideBottom.texCoord = glm::vec2(static_cast<float>(i) / static_cast<float>(sides), 0.0f);
         vertices.push_back(sideBottom);
-        sideTopRing.push_back(static_cast<unsigned int>(vertices.size() - 2));
         sideBottomRing.push_back(static_cast<unsigned int>(vertices.size() - 1));
     }
 
-    // 生成顶部圆盘三角形
+    // 生成顶部和底部的三角形
     for (int i = 0; i < sides; ++i) {
         AddTriangle(indices, topCenterIndex, topRing[i + 1], topRing[i]);
-    }
-
-    // 生成底部圆盘三角形
-    for (int i = 0; i < sides; ++i) {
         AddTriangle(indices, bottomCenterIndex, bottomRing[i], bottomRing[i + 1]);
     }
 
-    // 生成侧面四边形
+    // 生成侧面的四边形（使用侧面专用的顶点）
     for (int i = 0; i < sides; ++i) {
-        AddQuad(indices, sideTopRing[i], sideTopRing[i + 1], sideBottomRing[i + 1], sideBottomRing[i]);
-    }
-}
+        unsigned int topLeft = sideTopRing[i];
+        unsigned int topRight = sideTopRing[i + 1];
+        unsigned int bottomLeft = sideBottomRing[i];
+        unsigned int bottomRight = sideBottomRing[i + 1];
 
-glm::vec3 GeometryGenerator::CalculateNormal(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3) {
-    glm::vec3 edge1 = v2 - v1;
-    glm::vec3 edge2 = v3 - v1;
-    return glm::normalize(glm::cross(edge1, edge2));
+        AddQuad(indices, topLeft, topRight, bottomRight, bottomLeft);
+    }
 }
 
 void GeometryGenerator::AddTriangle(std::vector<unsigned int>& indices, unsigned int i0, unsigned int i1, unsigned int i2) {
